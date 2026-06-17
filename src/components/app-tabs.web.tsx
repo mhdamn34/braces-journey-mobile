@@ -6,7 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { type Href } from 'expo-router';
+import { type Href, Slot, usePathname } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
 
@@ -17,6 +17,16 @@ import { mainTabs } from '@/constants/main-tabs';
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 
 export default function AppTabs() {
+  const pathname = usePathname();
+  const normalizedPathname = pathname.length > 1 && pathname.endsWith('/') 
+    ? pathname.slice(0, -1) 
+    : pathname;
+  const isTab = mainTabs.some((tab) => tab.href === normalizedPathname);
+
+  if (!isTab) {
+    return <Slot />;
+  }
+
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />

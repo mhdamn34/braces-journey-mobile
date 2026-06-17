@@ -10,25 +10,16 @@ export type ChartPoint = {
 };
 
 export type DashboardTask = {
+  icon?: string;
   title: string;
   description: string;
 };
 
-export type DashboardMode = 'overview' | 'comfort' | 'money';
-
-export type DashboardModeOption = {
-  id: DashboardMode;
+export type TodaySummaryItem = {
   label: string;
-  description: string;
-};
-
-export type DashboardFocusPanel = {
-  title: string;
   value: string;
   helper: string;
-  badge: string;
-  tone: 'teal' | 'blue' | 'pink';
-  facts: string[];
+  tone: 'teal' | 'blue' | 'pink' | 'green' | 'navy';
 };
 
 export type TreatmentSummary = {
@@ -38,4 +29,22 @@ export type TreatmentSummary = {
   monthsCompleted: number;
   monthsTotal: number;
   nextAppointment: string;
+  braceColor?: string;
+  comfort?: number;
+};
+
+export type DashboardAction = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  tone: 'teal' | 'blue' | 'pink' | 'green' | 'navy';
+};
+
+export type DashboardPhotoPreview = {
+  month: string;
+  caption: string;
+  score: number;
+  capturedAt: string;
+  tone: 'teal' | 'blue' | 'pink' | 'green' | 'navy';
 };

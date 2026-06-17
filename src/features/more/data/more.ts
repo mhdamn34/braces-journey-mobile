@@ -27,6 +27,12 @@ export const moreActions: MoreAction[] = [
     tone: 'blue',
   },
   {
+    id: 'timeline',
+    label: 'Timeline',
+    description: 'Notes, colors, and treatment changes',
+    tone: 'green',
+  },
+  {
     id: 'colors',
     label: 'Color history',
     description: 'Track braces colors by visit',

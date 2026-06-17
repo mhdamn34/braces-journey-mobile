@@ -1,92 +1,101 @@
 import { StyleSheet, View } from 'react-native';
 
-import { BrandLogo } from '@/components/brand-logo';
+import { HeroCard, ProgressBar, ProgressRing } from '@/components/main-screen';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BrandColors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import type { TreatmentSummary } from '@/features/dashboard/types';
 
-type DashboardHeaderCardProps = {
+type Props = {
   summary: TreatmentSummary;
 };
 
-export function DashboardHeaderCard({ summary }: DashboardHeaderCardProps) {
+/**
+ * Hero treatment card.
+ *
+ * Layout:
+ *   - Big progress ring on the left (the visual anchor of the home tab)
+ *   - Friendly copy + key stats on the right
+ *   - Subtle month progress bar at the bottom
+ *
+ * Uses the "teal" tint because progress/treatment is the brand's primary hue.
+ */
+export function DashboardHeaderCard({ summary }: Props) {
+  const monthsPercent = Math.round(
+    (summary.monthsCompleted / summary.monthsTotal) * 100,
+  );
+
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
-      <View style={styles.topRow}>
-        <BrandLogo size={64} />
-        <View style={styles.titleBlock}>
-          <ThemedText type="small" themeColor="textSecondary">
-            Welcome back, {summary.patientName}
+    <HeroCard tone="teal" style={styles.hero}>
+      <View style={styles.row}>
+        <ProgressRing
+          percent={summary.progressPercent}
+          size={148}
+          strokeWidth={14}
+          tone="teal"
+          centerLabel="Progress"
+          centerValue={`${summary.progressPercent}%`}
+          centerHint={summary.currentStage}
+        />
+        <View style={styles.copy}>
+          <ThemedText type="caption" themeColor="textSecondary" style={styles.meta}>
+            TREATMENT
           </ThemedText>
-          <ThemedText type="subtitle" style={styles.title}>
-            BracesJourney
+          <ThemedText type="subtitle">{summary.currentStage}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.line}>
+            {summary.monthsCompleted} of {summary.monthsTotal} months complete
           </ThemedText>
+          <View style={styles.divider} />
+          <ThemedText type="caption" themeColor="textSecondary">
+            NEXT VISIT
+          </ThemedText>
+          <ThemedText type="defaultBold">{summary.nextAppointment}</ThemedText>
         </View>
       </View>
 
-      <View style={styles.progressHeader}>
-        <View>
-          <ThemedText type="smallBold">{summary.currentStage}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {summary.monthsCompleted} of {summary.monthsTotal} months tracked
+      <View style={styles.footer}>
+        <View style={styles.footerRow}>
+          <ThemedText type="caption" themeColor="textSecondary">
+            MONTHS
+          </ThemedText>
+          <ThemedText type="caption" themeColor="textSecondary">
+            {summary.monthsCompleted}/{summary.monthsTotal}
           </ThemedText>
         </View>
-        <ThemedText type="subtitle" style={styles.progressValue}>
-          {summary.progressPercent}%
-        </ThemedText>
+        <ProgressBar percent={monthsPercent} tone="teal" height={8} />
       </View>
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${summary.progressPercent}%` }]} />
-      </View>
-    </ThemedView>
+    </HeroCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.two,
-    gap: Spacing.three,
-    shadowColor: '#0B2A5B',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 4,
+  hero: {
+    paddingTop: Spacing.four,
   },
-  topRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
   },
-  titleBlock: {
+  copy: {
     flex: 1,
+    gap: 2,
   },
-  title: {
-    fontSize: 24,
-    lineHeight: 30,
+  meta: {
+    letterSpacing: 1,
   },
-  progressHeader: {
+  line: {
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(33,184,199,0.25)',
+    marginVertical: Spacing.two,
+  },
+  footer: {
+    gap: Spacing.one,
+  },
+  footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: Spacing.three,
-  },
-  progressValue: {
-    fontSize: 28,
-    lineHeight: 34,
-    color: BrandColors.blue,
-  },
-  progressTrack: {
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: '#DCE5F2',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 10,
-    backgroundColor: BrandColors.teal,
   },
 });

@@ -1,9 +1,8 @@
 import type {
   ChartPoint,
-  DashboardFocusPanel,
-  DashboardMode,
-  DashboardModeOption,
+  DashboardAction,
   DashboardTask,
+  TodaySummaryItem,
   TreatmentSummary,
 } from '@/features/dashboard/types';
 import { formatCurrency } from '@/utils/format-currency';
@@ -15,46 +14,8 @@ export const treatmentSummary: TreatmentSummary = {
   monthsCompleted: 12,
   monthsTotal: 18,
   nextAppointment: 'May 29, 10:00 AM',
-};
-
-export const dashboardMetrics = [
-  { label: 'Treatment', value: `${treatmentSummary.progressPercent}%`, helper: 'complete' },
-  { label: 'Photos', value: '5', helper: 'monthly logs' },
-  { label: 'Next bill', value: formatCurrency(72, { showCents: false }), helper: 'due Jun 10' },
-  { label: 'Pain', value: '2/10', helper: 'today' },
-];
-
-export const dashboardModes: DashboardModeOption[] = [
-  { id: 'overview', label: 'Overview', description: 'Progress' },
-  { id: 'comfort', label: 'Comfort', description: 'Pain' },
-  { id: 'money', label: 'Money', description: 'Payments' },
-];
-
-export const dashboardFocusPanels: Record<DashboardMode, DashboardFocusPanel> = {
-  overview: {
-    title: 'Treatment pace',
-    value: '68%',
-    helper: 'Alignment is ahead of the planned monthly pace.',
-    badge: 'On track',
-    tone: 'teal',
-    facts: ['5 photo logs', '3 appointments booked', 'Blue ligatures'],
-  },
-  comfort: {
-    title: 'Comfort score',
-    value: '2/10',
-    helper: 'Pain trend is improving after the last adjustment.',
-    badge: 'Stable',
-    tone: 'blue',
-    facts: ['Mild soreness', 'Elastics routine active', 'No urgent notes'],
-  },
-  money: {
-    title: 'Next payment',
-    value: formatCurrency(72, { showCents: false }),
-    helper: 'Monthly treatment payment due on Jun 10.',
-    badge: 'Due soon',
-    tone: 'pink',
-    facts: ['RM 1,120 paid', 'RM 480 remaining', 'QRPay ready'],
-  },
+  braceColor: 'Silver with blue ligatures',
+  comfort: 2,
 };
 
 export const alignmentProgress: ChartPoint[] = [
@@ -65,35 +26,89 @@ export const alignmentProgress: ChartPoint[] = [
   { label: 'Jun', value: 68 },
 ];
 
-export const paymentProgress: ChartPoint[] = [
-  { label: 'Feb', value: 18 },
-  { label: 'Mar', value: 32 },
-  { label: 'Apr', value: 48 },
-  { label: 'May', value: 62 },
-  { label: 'Jun', value: 70 },
-];
-
-export const painTrend: ChartPoint[] = [
-  { label: 'Mon', value: 5 },
-  { label: 'Tue', value: 4 },
-  { label: 'Wed', value: 4 },
-  { label: 'Thu', value: 3 },
-  { label: 'Fri', value: 2 },
-  { label: 'Sat', value: 2 },
-  { label: 'Sun', value: 2 },
-];
-
 export const todayTasks: DashboardTask[] = [
   {
-    title: 'Next appointment',
-    description: `Wire adjustment on ${treatmentSummary.nextAppointment}.`,
+    icon: '🦷',
+    title: 'Log tonight’s pain level',
+    description: 'A 30-second check-in keeps your comfort trend accurate.',
   },
   {
-    title: 'Current braces color',
-    description: 'Silver brackets with blue ligatures.',
+    icon: '📸',
+    title: 'Capture a progress photo',
+    description: 'Same angle, same light — easiest way to spot real change.',
   },
   {
-    title: 'Comfort note',
-    description: 'Mild soreness after elastics. Keep tracking pain level nightly.',
+    icon: '🎀',
+    title: 'Pick your next braces color',
+    description: 'Pre-select before your visit so you’re in and out faster.',
   },
 ];
+
+/**
+ * Compact summary tiles shown right under the greeting.
+ */
+export const todaySummaryItems: TodaySummaryItem[] = [
+  {
+    label: 'Next visit',
+    value: 'May 29',
+    helper: '10:00 AM wire adjustment',
+    tone: 'teal',
+  },
+  {
+    label: 'Comfort',
+    value: '2/10',
+    helper: 'Mild soreness today',
+    tone: 'blue',
+  },
+  {
+    label: 'Next bill',
+    value: formatCurrency(72, { showCents: false }),
+    helper: 'Due Jun 10',
+    tone: 'pink',
+  },
+];
+
+/**
+ * Quick action tiles for common tasks.
+ */
+export const dashboardActions: DashboardAction[] = [
+  {
+    id: 'log-comfort',
+    title: 'Log comfort',
+    description: '30s check-in',
+    icon: '🩺',
+    tone: 'teal',
+  },
+  {
+    id: 'add-photo',
+    title: 'Add photo',
+    description: 'New progress shot',
+    icon: '📸',
+    tone: 'pink',
+  },
+  {
+    id: 'pick-color',
+    title: 'Pick color',
+    description: 'Next visit',
+    icon: '🎀',
+    tone: 'blue',
+  },
+  {
+    id: 'make-payment',
+    title: 'Pay bill',
+    description: 'RM 72 due',
+    icon: '💳',
+    tone: 'green',
+  },
+];
+
+/**
+ * Latest progress photo preview (front-end data only).
+ */
+export const latestPhotoPreview = {
+  month: 'May',
+  caption: 'After wire adjustment — front view',
+  score: 82,
+  capturedAt: 'May 24',
+  tone: 'teal' as const,
+};

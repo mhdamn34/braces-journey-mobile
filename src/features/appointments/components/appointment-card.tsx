@@ -1,40 +1,56 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors, Spacing } from '@/constants/theme';
 import type { Appointment, AppointmentStatus } from '@/features/appointments/types';
+import { formatAppointmentDate } from '@/features/appointments/utils/format-appointment-date';
 
 type AppointmentCardProps = {
   appointment: Appointment;
+  onPress?: () => void;
 };
 
-const statusColors: Record<AppointmentStatus, { background: string; text: string }> = {
-  Upcoming: { background: '#E7F8FA', text: BrandColors.teal },
-  Completed: { background: '#EAF7EF', text: BrandColors.green },
-  Missed: { background: '#FCE8F6', text: BrandColors.pink },
+const statusColors: Record<
+  AppointmentStatus,
+  { background: string; text: string; pill: string }
+> = {
+  Upcoming: { background: '#E7F8FA', text: BrandColors.teal, pill: '🦷' },
+  Completed: { background: '#EAF7EF', text: BrandColors.green, pill: '✅' },
+  Missed: { background: '#FCE8F6', text: BrandColors.pink, pill: '⏰' },
 };
 
-export function AppointmentCard({ appointment }: AppointmentCardProps) {
+/**
+ * Compact appointment card used in the Visits tab list.  Tapping the card
+ * opens the detail screen (when `onPress` is provided).
+ */
+export function AppointmentCard({ appointment, onPress }: AppointmentCardProps) {
   const statusColor = statusColors[appointment.status];
+  const dateLabel = formatAppointmentDate(appointment.date);
 
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
-      <View style={styles.content}>
-        <ThemedText type="smallBold">{appointment.title}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {appointment.date} - {appointment.time}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {appointment.location}
-        </ThemedText>
-      </View>
-      <View style={[styles.statusBadge, { backgroundColor: statusColor.background }]}>
-        <ThemedText type="smallBold" style={{ color: statusColor.text }}>
-          {appointment.status}
-        </ThemedText>
-      </View>
-    </ThemedView>
+    <Pressable onPress={onPress} disabled={!onPress}>
+      <ThemedView type="backgroundElement" style={styles.card}>
+        <View style={styles.content}>
+          <ThemedText type="smallBold">{appointment.title}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {dateLabel} · {appointment.time}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {appointment.location}
+          </ThemedText>
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: statusColor.background },
+          ]}>
+          <ThemedText type="smallBold" style={{ color: statusColor.text }}>
+            {appointment.status}
+          </ThemedText>
+        </View>
+      </ThemedView>
+    </Pressable>
   );
 }
 

@@ -8,7 +8,13 @@
     "scheme": "bracesjourney",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/braces-journey-logo.png"
+      "icon": "./assets/images/braces-journey-logo.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "BracesJourney uses the front camera to capture your smile and track progress over time. Photos stay on your device.",
+        "NSPhotoLibraryAddUsageDescription": "BracesJourney can save progress photos to your library when you want a backup.",
+        "NSMicrophoneUsageDescription": "BracesJourney does not record audio, but the camera framework requires this entry to be declared."
+      },
+      "bundleIdentifier": "com.mhdamin34.bracesjourney"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +23,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.mhdamin34.bracesjourney"
     },
     "web": {
       "output": "static",
@@ -25,6 +36,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow BracesJourney to use your camera so you can capture progress photos of your smile."
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -41,6 +58,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d1e4452d-9354-4328-8e22-ac423c05dc4e"
+      }
     }
   }
 }
