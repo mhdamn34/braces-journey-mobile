@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -25,12 +25,15 @@ export default function ReviewScreen() {
   const profile = useStoreValue(profileStore);
   const [color, setColor] = useState<BracketColor | undefined>(undefined);
   const [note, setNote] = useState('');
+  const savedRef = useRef(false);
 
   const today = todayIso();
   const month = suggestedMonthNumber(entries, profile, today);
   const uri = String(params.uri);
 
   function save() {
+    if (savedRef.current) return;
+    savedRef.current = true;
     const id = `${Date.now()}`;
     addEntry({
       id,
