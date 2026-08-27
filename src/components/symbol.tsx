@@ -1,11 +1,11 @@
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { Platform, Text } from 'react-native';
+import { Platform, Text, type ColorValue } from 'react-native';
 
 type Props = {
   name: string;
   fallback: string;
   size?: number;
-  tintColor: string;
+  tintColor: ColorValue;
 };
 
 export function Symbol({ name, fallback, size = 20, tintColor }: Props) {

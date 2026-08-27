@@ -29,7 +29,15 @@ export default function RootLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: colors.bg },
         }}
-      />
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="player" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="review" />
+        <Stack.Screen name="compare" />
+        <Stack.Screen name="import-photos" />
+      </Stack>
       <SaveErrorBanner />
     </GestureHandlerRootView>
   );
