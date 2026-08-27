@@ -27,6 +27,8 @@ A ground-up rebuild of BracesJourney as a fresh Expo project in this repo. The a
 | Capture tab behaviour | Launcher screen first (month status + checklist), camera one tap away |
 | Visual direction | Mix: Soft Studio (light mode) + Darkroom (dark mode) + serif display type, terracotta accent |
 | Notifications | Cut from v1; the Capture tab's due state is the nudge |
+| First run | Onboarding flow: new vs existing braces, fitted date, duration, optional details (name, clinic, braces type) |
+| Past photos | Camera-roll import in v1, offered during onboarding's "existing braces" path and from Settings |
 
 ## 2. Project structure
 
@@ -60,8 +62,11 @@ src/
       types.ts  store.ts  components/
     profile/
       types.ts  store.ts
+      components/onboarding/   ← one component per onboarding step
   app/                         ← routes only; thin composition of feature parts
-    _layout.tsx                ← root stack, theme + fonts, splash
+    _layout.tsx                ← root stack, theme + fonts, splash,
+                                 redirect to /onboarding until completed
+    onboarding.tsx             ← first-run pager (steps live in features/profile)
     (tabs)/_layout.tsx         ← Journey / Capture / More
     (tabs)/index.tsx           ← Journey (home)
     (tabs)/capture.tsx         ← Capture launcher
@@ -70,6 +75,7 @@ src/
     compare.tsx                ← before/after slider
     camera.tsx                 ← camera + ghost overlay (full-screen)
     review.tsx                 ← review & save captured photo
+    import-photos.tsx          ← backfill past months from the camera roll
     entry/[id].tsx             ← journey entry detail/edit
     visits/index.tsx  visits/new.tsx  visits/[id].tsx
     payments.tsx
@@ -147,21 +153,28 @@ type PaymentRecord = {
 };
 type PaymentsState = { planTotal: number; records: PaymentRecord[] };
 
+type BracesType = 'metal' | 'ceramic' | 'self-ligating' | 'lingual' | 'aligners';
+
 type Profile = {
   name: string;
   clinicName: string;
-  treatmentStartDate: string; // ISO date
+  treatmentStartDate: string; // ISO date — when the braces were/are fitted
   plannedMonths: number;      // e.g. 24
+  bracesType?: BracesType;
+  onboardedAt?: string;       // ISO datetime; unset = show onboarding
 };
 ```
 
-Initial profile values: empty name and clinic, `treatmentStartDate` = today, `plannedMonths` = 24. Journey shows its "Set up your journey" card while name is empty.
+Initial profile values: empty name and clinic, `treatmentStartDate` = today, `plannedMonths` = 24, `onboardedAt` unset. The root layout redirects to `/onboarding` while `onboardedAt` is unset; onboarding fills these fields.
+
+`monthNumber` is unique across entries. It is not tied to calendar months of the year — it counts months of treatment: `suggestedMonthNumber(entries, profile, today)` = months elapsed since `treatmentStartDate` + 1, bumped past the highest already-used month number. Gaps are allowed (a skipped month simply has no entry); the flipbook plays entries in `monthNumber` order.
 
 The journey entry **is** the record: photo files live on disk, but the entry in `journey.json` is the single source of truth. The old separate photo index JSON is gone. Deleting an entry deletes its photo file.
 
 ### Journey logic (`features/journey/logic.ts`, pure functions, unit-tested)
 
-- `nextMonthNumber(entries)` — max monthNumber + 1, or 1.
+- `suggestedMonthNumber(entries, profile, today)` — see §3; drives every "Capture Month N" label, so a mid-journey install correctly starts at "Month 7", not "Month 1".
+- `suggestImportMonths(pickedPhotos, profile)` — for camera-roll import: proposes a month number per photo from its creation date relative to `treatmentStartDate` (fallback: sequential from Month 1), never colliding with an existing or already-proposed month.
 - `dueState(entries, visits, today)` returns `'first' | 'due' | 'done'`:
   - `'first'` — no entries yet.
   - `'due'` — the most recent **completed** visit has no entry photo captured after it, **or** 30+ days have passed since the last photo.
@@ -169,6 +182,21 @@ The journey entry **is** the record: photo files live on disk, but the entry in 
 - `monthLabel(entry)` — "Month 7 · August".
 
 ## 4. Screens & flows
+
+### Onboarding — `/onboarding` (first run only)
+
+Full-screen pager in the app's design language (serif voice, one question per screen), shown until `profile.onboardedAt` is set. Everything it collects is editable later in Settings.
+
+1. **Welcome** — logo, one line about the monthly ritual, "Get started".
+2. **Your braces** — the fork: **"Just getting started"** vs **"Already wearing braces"**. Then on the same step: fitted date (date picker; past dates for the existing path) and planned duration in months (stepper, default 24). Sets `treatmentStartDate` + `plannedMonths`.
+3. **The details** — name, clinic, braces type (metal / ceramic / self-ligating / lingual / clear aligners). All optional; a "Skip" affordance is always visible.
+4. **Bring your history** *(existing path only)* — "Have photos from past months?" → primary button opens `/import-photos`; secondary "I'll start from today" finishes onboarding.
+
+Finishing any path stamps `onboardedAt` and lands on Journey.
+
+### Import past photos — `/import-photos`
+
+Reached from onboarding step 4 and from Settings ("Add past photos"). Multi-select from the camera roll (`expo-image-picker`), then a review list: one row per photo, ordered by creation date, each pre-assigned a month via `suggestImportMonths` with editable month, optional bracket colour, and note. Duplicate month numbers are prevented in the UI (the picker only offers free months). "Add N months" copies the files into `documentDirectory/photos/` and creates the entries — the flipbook is complete from day one.
 
 ### Journey — `(tabs)/index.tsx` (home)
 
@@ -180,7 +208,7 @@ Theater layout, top to bottom:
 4. **Due prompt** — slim banner shown only when `dueState` is `'due'`: "Month N is due — capture now" → `/camera`.
 5. **"The story so far"** (serif voice) — journey log, newest first: thumbnail, month label, colour dot, note preview. Tap → `/entry/[id]`. A "Compare" text button sits in the section header → `/compare`.
 
-**Empty state (0 entries):** serif welcome line, one paragraph explaining the ritual, primary button "Capture Month 1" → `/camera`. If the profile still has default values, a small "Set up your journey" card links to `/settings` first.
+**Empty state (0 entries):** serif welcome line, one paragraph explaining the ritual, primary button "Capture Month N" (via `suggestedMonthNumber`) → `/camera`, plus a secondary "Add past photos" → `/import-photos` so a mid-journey user who skipped onboarding's import can still backfill.
 
 ### Player — `/player` (modal, full-bleed)
 
@@ -222,7 +250,7 @@ Small profile header (name, clinic, "Month N of M"), then three list rows: **Vis
 
 - **Visits** (`/visits`, `/visits/new`, `/visits/[id]`): same capabilities as today, rebuilt on the store factory. The 4-step 708-line wizard becomes one scrollable form (title chips, date, time, location, notes). Visit detail keeps the status row (upcoming/completed/missed) and delete. **Marking a visit completed shows a prompt: "Changed brackets? Capture Month N" → `/camera`** — this closes the loop between visits and photos.
 - **Payments** (`/payments`): editable plan total, paid/remaining summary with a progress bar, list of payment records, "Add payment" inline form (amount, date, method). All amounts in RM via `format-currency`.
-- **Settings** (`/settings`): edit profile fields (name, clinic, treatment start date, planned months).
+- **Settings** (`/settings`): edit profile fields (name, clinic, treatment start date, planned months, braces type) and an "Add past photos" row → `/import-photos`.
 
 ## 5. Design system
 
@@ -264,17 +292,20 @@ Theme follows the system appearance (`useColorScheme`); no in-app toggle in v1.
 
 ## 6. Edge cases & error handling
 
-- **0 entries** — Journey shows the empty state; filmstrip, play, compare, and due-banner hidden. Capture tab reads "Month 1 · not started".
+- **0 entries** — Journey shows the empty state; filmstrip, play, compare, and due-banner hidden. Capture tab reads "Month N · not started" (N from `suggestedMonthNumber`, so a mid-journey install says "Month 7").
 - **1 entry** — stage + log render; player opens but scrubbing is a no-op; Compare is hidden until 2 photos exist; camera shows no ghost.
 - **Camera permission denied** — explainer gate with Allow / Open Settings; the app never dead-ends.
 - **File-system write failure** — store keeps the in-memory state, retries the debounced write, and surfaces a non-blocking "couldn't save" toast if it keeps failing.
 - **Corrupt JSON on hydrate** — fall back to `initial`; never crash on launch.
 - **Entry deletion** — confirm dialog; removes the photo file and the entry atomically (entry first, then best-effort file delete).
 - **Photo file missing at render** (e.g. after an OS cleanup) — `expo-image` fallback placeholder, entry remains editable/deletable.
+- **Import: photo-library permission denied** — explainer + Open Settings button, same pattern as the camera gate.
+- **Import: no usable creation date on a picked photo** — `suggestImportMonths` falls back to sequential assignment; the month stays editable per row.
+- **Existing-braces install with no import** — nothing breaks: `suggestedMonthNumber` starts the journey at the correct month and earlier months simply remain empty (backfillable later from Settings).
 
 ## 7. Testing
 
-- **Unit (jest-expo, TDD):** `create-json-store` (hydrate, update, subscribe, debounce, corrupt-file fallback — expo-file-system mocked), `journey/logic` (month numbering, due state including the visit-linkage rule), `format-currency`, `dates`.
+- **Unit (jest-expo, TDD):** `create-json-store` (hydrate, update, subscribe, debounce, corrupt-file fallback — expo-file-system mocked), `journey/logic` (`suggestedMonthNumber` including mid-journey installs, due state including the visit-linkage rule, `suggestImportMonths` collision/fallback behaviour), `format-currency`, `dates`.
 - **Component (@testing-library/react-native), selectively:** review screen save wiring (colour + note land on the entry), Journey empty→populated switch.
 - **Manual in iOS simulator:** camera flow (simulator fake camera), player scrub/play, compare slider, light/dark themes. No snapshot tests.
 
@@ -287,7 +318,7 @@ Fresh `create-expo-app` (latest SDK, expo-router template) **in this repo**, on 
 - **Port (rewritten, with tests):** `format-currency`, the date-helper subset, visit-form option constants.
 - **Delete concepts:** fake analysis/verification, cartoon smile map, dashboard mock data, photo index JSON, 4-step wizard, NativeWind/React Query/Axios mentions in docs (never actually installed).
 
-Dependencies: `expo-router`, `expo-camera`, `expo-file-system`, `expo-image`, `expo-font` + serif font package, `expo-haptics`, `expo-symbols`, `expo-splash-screen`, `expo-status-bar`, `react-native-gesture-handler`, `react-native-reanimated`, `react-native-safe-area-context`, `react-native-screens`. Dev: `typescript`, `eslint-config-expo`, `jest-expo`, `@testing-library/react-native`.
+Dependencies: `expo-router`, `expo-camera`, `expo-file-system`, `expo-image`, `expo-image-picker`, `expo-font` + serif font package, `expo-haptics`, `expo-symbols`, `expo-splash-screen`, `expo-status-bar`, `react-native-gesture-handler`, `react-native-reanimated`, `react-native-safe-area-context`, `react-native-screens`. Dev: `typescript`, `eslint-config-expo`, `jest-expo`, `@testing-library/react-native`.
 
 `AGENTS.md` is rewritten from scratch: the feature recipe first, then structure, tokens, store contract, and the maintenance rule. The stale Laravel/NativeWind/`mobile/` sections are removed.
 
