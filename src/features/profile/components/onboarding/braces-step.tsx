@@ -1,4 +1,4 @@
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -37,24 +37,28 @@ export function BracesStep({ situation, startDate, plannedMonths, onChange, onNe
       <Text style={[Type.display, { color: colors.textPrimary }]}>Your braces</Text>
       <View style={{ flexDirection: 'row', gap: Space.md }}>
         <View style={{ flex: 1 }}>
-          <Card style={{ borderColor: situation === 'new' ? colors.accent : colors.border }}>
-            <Text
-              onPress={() => onChange({ situation: 'new', startDate: todayIso() })}
-              style={[Type.body, { color: colors.textPrimary, fontWeight: '600' }]}
-            >
-              Just getting started
-            </Text>
-          </Card>
+          <Pressable
+            onPress={() => onChange({ situation: 'new', startDate: todayIso() })}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          >
+            <Card style={{ borderColor: situation === 'new' ? colors.accent : colors.border }}>
+              <Text style={[Type.body, { color: colors.textPrimary, fontWeight: '600' }]}>
+                Just getting started
+              </Text>
+            </Card>
+          </Pressable>
         </View>
         <View style={{ flex: 1 }}>
-          <Card style={{ borderColor: situation === 'existing' ? colors.accent : colors.border }}>
-            <Text
-              onPress={() => onChange({ situation: 'existing' })}
-              style={[Type.body, { color: colors.textPrimary, fontWeight: '600' }]}
-            >
-              Already wearing braces
-            </Text>
-          </Card>
+          <Pressable
+            onPress={() => onChange({ situation: 'existing' })}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          >
+            <Card style={{ borderColor: situation === 'existing' ? colors.accent : colors.border }}>
+              <Text style={[Type.body, { color: colors.textPrimary, fontWeight: '600' }]}>
+                Already wearing braces
+              </Text>
+            </Card>
+          </Pressable>
         </View>
       </View>
 

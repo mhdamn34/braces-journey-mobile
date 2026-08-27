@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
           onChange={(patch) => {
             if (patch.name !== undefined) setName(patch.name);
             if (patch.clinicName !== undefined) setClinicName(patch.clinicName);
-            setBracesType(patch.bracesType);
+            if ('bracesType' in patch) setBracesType(patch.bracesType);
           }}
           onNext={afterDetails}
         />
