@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -59,6 +59,8 @@ export default function CameraScreen() {
           params: { uri: photo.uri, width: String(photo.width), height: String(photo.height) },
         });
       }
+    } catch {
+      Alert.alert("Couldn't take the photo", 'Please try again.');
     } finally {
       setBusy(false);
     }
