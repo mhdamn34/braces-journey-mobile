@@ -27,7 +27,7 @@ jest.mock('expo-file-system', () => ({
     get exists() {
       return mockFiles.has(this.uri);
     }
-    copy(to: { uri: string }) {
+    copySync(to: { uri: string }) {
       mockFiles.set(to.uri, mockFiles.get(this.uri) ?? 'binary');
     }
     delete() {

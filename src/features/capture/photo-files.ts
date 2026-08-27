@@ -15,7 +15,7 @@ export function persistPhotoFile(tempUri: string, id: string): string {
   // which fails this regex — so extension-less URIs fall back to jpg.
   const ext = /^[a-zA-Z0-9]{2,5}$/.test(rawExt) ? rawExt : 'jpg';
   const dest = new File(photosDir(), `${id}.${ext}`);
-  new File(tempUri).copy(dest);
+  new File(tempUri).copySync(dest);
   return dest.uri;
 }
 
