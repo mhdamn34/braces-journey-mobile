@@ -61,38 +61,42 @@ export default function CompareScreen() {
             backgroundColor: darkColors.surface,
           }}
         >
-          <Image
-            source={{ uri: after.photo!.uri }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-          <Animated.View
-            style={[
-              { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
-              clipStyle,
-            ]}
-          >
-            <Image
-              source={{ uri: before.photo!.uri }}
-              style={{ width: stageWidth || '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          </Animated.View>
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                width: 2,
-                marginLeft: -1,
-                backgroundColor: '#FFFFFF',
-              },
-              handleStyle,
-            ]}
-          />
-          <Text style={[Type.caption, chipStyle('left')]}>{monthLabel(before)}</Text>
-          <Text style={[Type.caption, chipStyle('right')]}>{monthLabel(after)}</Text>
+          {stageWidth > 0 ? (
+            <>
+              <Image
+                source={{ uri: after.photo!.uri }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+              <Animated.View
+                style={[
+                  { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
+                  clipStyle,
+                ]}
+              >
+                <Image
+                  source={{ uri: before.photo!.uri }}
+                  style={{ width: stageWidth, height: '100%' }}
+                  contentFit="cover"
+                />
+              </Animated.View>
+              <Animated.View
+                style={[
+                  {
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    marginLeft: -1,
+                    backgroundColor: '#FFFFFF',
+                  },
+                  handleStyle,
+                ]}
+              />
+              <Text style={[Type.caption, chipStyle('left')]}>{monthLabel(before)}</Text>
+              <Text style={[Type.caption, chipStyle('right')]}>{monthLabel(after)}</Text>
+            </>
+          ) : null}
         </View>
       </GestureDetector>
       <Text style={[Type.caption, { color: darkColors.textTertiary, textAlign: 'center' }]}>
