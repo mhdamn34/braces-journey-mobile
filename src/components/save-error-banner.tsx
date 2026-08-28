@@ -25,7 +25,7 @@ export function SaveErrorBanner() {
         padding: Space.md,
       }}
     >
-      <Text style={[Type.label, { color: '#FFFFFF', textAlign: 'center' }]}>
+      <Text style={[Type.label, { color: colors.onAccent, textAlign: 'center' }]}>
         Couldn&apos;t save your latest change — it&apos;s kept in memory. Tap to dismiss.
       </Text>
     </Pressable>

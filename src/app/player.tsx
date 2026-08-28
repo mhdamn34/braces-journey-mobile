@@ -108,9 +108,18 @@ export default function PlayerScreen() {
             <Text style={[Type.label, { color: darkColors.textPrimary }]}>{monthLabel(entry)}</Text>
             {entry.bracketColor ? <ColorDot hex={entry.bracketColor.hex} /> : null}
           </View>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Symbol name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.md }}>
+            <Pressable
+              onPress={() => router.push('/compare')}
+              hitSlop={8}
+              accessibilityLabel="Compare months"
+            >
+              <Symbol name="rectangle.split.2x1" fallback="⇄" size={26} tintColor="#FFFFFF" />
+            </Pressable>
+            <Pressable onPress={() => router.back()} hitSlop={8}>
+              <Symbol name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
       <SafeAreaView style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>

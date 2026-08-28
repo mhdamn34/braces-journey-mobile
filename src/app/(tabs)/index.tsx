@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -29,11 +29,17 @@ export default function JourneyScreen() {
   const entries = entriesWithPhotos(allEntries);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Follow the latest entry whenever the tab regains focus with new data.
+  const lastSeenLatestIdRef = useRef<string | null>(null);
+  // Follow the latest entry when a new month arrives or the selection vanishes.
   useFocusEffect(
     useCallback(() => {
       const latest = entries.at(-1);
-      if (latest && !entries.some((e) => e.id === selectedId)) setSelectedId(latest.id);
+      if (!latest) return;
+      const latestIsNew = lastSeenLatestIdRef.current !== latest.id;
+      lastSeenLatestIdRef.current = latest.id;
+      if (latestIsNew || !entries.some((e) => e.id === selectedId)) {
+        setSelectedId(latest.id);
+      }
     }, [entries, selectedId]),
   );
 

@@ -26,6 +26,7 @@ export default function PaymentsScreen() {
   const colors = useTheme();
   const { planTotal, records } = useStoreValue(paymentsStore);
   const [totalDraft, setTotalDraft] = useState('');
+  const [editingTotal, setEditingTotal] = useState(false);
   const [adding, setAdding] = useState(false);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -96,6 +97,35 @@ export default function PaymentsScreen() {
           {formatCurrency(planTotal, { showCents: false })}
         </Text>
       </Card>
+
+      {editingTotal ? (
+        <Card>
+          <Text style={[Type.label, { color: colors.textPrimary }]}>Treatment plan total</Text>
+          <Text style={[Type.caption, { color: colors.textSecondary }]}>
+            What your orthodontist quoted for the whole treatment.
+          </Text>
+          <TextInput value={totalDraft} onChangeText={setTotalDraft} placeholder="e.g. 8000"
+            keyboardType="numeric" placeholderTextColor={colors.textTertiary} style={inputStyle} />
+          <Button
+            label="Update plan total"
+            disabled={!(Number(totalDraft) > 0)}
+            onPress={() => {
+              setPlanTotal(Number(totalDraft));
+              setEditingTotal(false);
+            }}
+          />
+          <Button label="Cancel" variant="secondary" onPress={() => setEditingTotal(false)} />
+        </Card>
+      ) : (
+        <Button
+          label="Edit plan total"
+          variant="secondary"
+          onPress={() => {
+            setTotalDraft(String(planTotal));
+            setEditingTotal(true);
+          }}
+        />
+      )}
 
       {adding ? (
         <Card>
