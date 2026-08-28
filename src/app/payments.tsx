@@ -100,7 +100,7 @@ export default function PaymentsScreen() {
       {adding ? (
         <Card>
           <Text style={[Type.label, { color: colors.textPrimary }]}>Record a payment</Text>
-          <TextInput value={amount} onChangeText={setAmount} placeholder="Amount (RM)"
+          <TextInput value={amount} onChangeText={setAmount} placeholder="Amount"
             keyboardType="numeric" placeholderTextColor={colors.textTertiary} style={inputStyle} />
           <View style={{ flexDirection: 'row', gap: Space.sm }}>
             {METHODS.map((m) => (
