@@ -8,7 +8,7 @@ type Props = {
   tintColor: ColorValue;
 };
 
-export function Symbol({ name, fallback, size = 20, tintColor }: Props) {
+export function Icon({ name, fallback, size = 20, tintColor }: Props) {
   if (Platform.OS === 'ios') {
     return <SymbolView name={name as SFSymbol} size={size} tintColor={tintColor} />;
   }

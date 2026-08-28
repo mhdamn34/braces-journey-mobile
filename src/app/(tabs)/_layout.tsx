@@ -1,6 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { profileStore } from '@/features/profile/store';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { useTheme } from '@/theme/use-theme';
@@ -25,7 +25,7 @@ export default function TabsLayout() {
         options={{
           title: 'Journey',
           tabBarIcon: ({ color, size }) => (
-            <Symbol name="photo.stack" fallback="◧" size={size} tintColor={color} />
+            <Icon name="photo.stack" fallback="◧" size={size} tintColor={color} />
           ),
         }}
       />
@@ -34,7 +34,7 @@ export default function TabsLayout() {
         options={{
           title: 'Capture',
           tabBarIcon: ({ color, size }) => (
-            <Symbol name="camera" fallback="◉" size={size} tintColor={color} />
+            <Icon name="camera" fallback="◉" size={size} tintColor={color} />
           ),
         }}
       />
@@ -43,7 +43,7 @@ export default function TabsLayout() {
         options={{
           title: 'More',
           tabBarIcon: ({ color, size }) => (
-            <Symbol name="ellipsis.circle" fallback="⋯" size={size} tintColor={color} />
+            <Icon name="ellipsis.circle" fallback="⋯" size={size} tintColor={color} />
           ),
         }}
       />

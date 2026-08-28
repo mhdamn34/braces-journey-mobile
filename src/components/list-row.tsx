@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
 
@@ -37,7 +37,7 @@ export function ListRow({ title, subtitle, onPress, right }: Props) {
         ) : null}
       </View>
       {right ?? (onPress ? (
-        <Symbol name="chevron.right" fallback="›" size={14} tintColor={colors.textTertiary} />
+        <Icon name="chevron.right" fallback="›" size={14} tintColor={colors.textTertiary} />
       ) : null)}
     </Pressable>
   );

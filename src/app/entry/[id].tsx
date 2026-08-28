@@ -6,7 +6,7 @@ import { Alert, Text, TextInput, View } from 'react-native';
 import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
 import { monthLabel } from '@/features/journey/logic';
 import { deleteEntry, journeyStore, updateEntry } from '@/features/journey/store';
@@ -85,7 +85,7 @@ export default function EntryDetailScreen() {
             gap: Space.sm,
           }}
         >
-          <Symbol name="photo" fallback="▢" size={28} tintColor={colors.textTertiary} />
+          <Icon name="photo" fallback="▢" size={28} tintColor={colors.textTertiary} />
           <Text style={[Type.caption, { color: colors.textTertiary }]}>Photo file missing</Text>
         </View>
       ) : null}

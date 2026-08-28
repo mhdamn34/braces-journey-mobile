@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Screen } from '@/components/screen';
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { dueState, monthLabel, suggestedMonthNumber } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
 import { profileStore } from '@/features/profile/store';
@@ -86,7 +86,7 @@ export default function CaptureScreen() {
         <Text style={[Type.label, { color: colors.textPrimary }]}>Quick checklist</Text>
         {CHECKLIST.map((item) => (
           <View key={item} style={{ flexDirection: 'row', gap: Space.sm, alignItems: 'center' }}>
-            <Symbol name="checkmark.circle" fallback="✓" size={16} tintColor={colors.accent} />
+            <Icon name="checkmark.circle" fallback="✓" size={16} tintColor={colors.accent} />
             <Text style={[Type.caption, { color: colors.textSecondary, flex: 1 }]}>{item}</Text>
           </View>
         ))}

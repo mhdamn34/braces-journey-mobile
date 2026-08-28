@@ -8,7 +8,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ColorDot } from '@/components/color-dot';
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { monthLabel } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
 import { useStoreValue } from '@/lib/store/use-store-value';
@@ -114,10 +114,10 @@ export default function PlayerScreen() {
               hitSlop={8}
               accessibilityLabel="Compare months"
             >
-              <Symbol name="rectangle.split.2x1" fallback="⇄" size={26} tintColor="#FFFFFF" />
+              <Icon name="rectangle.split.2x1" fallback="⇄" size={26} tintColor="#FFFFFF" />
             </Pressable>
             <Pressable onPress={() => router.back()} hitSlop={8}>
-              <Symbol name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
+              <Icon name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -126,7 +126,7 @@ export default function PlayerScreen() {
         <View style={{ padding: Space.lg, gap: Space.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.md }}>
             <Pressable onPress={togglePlay} hitSlop={8}>
-              <Symbol
+              <Icon
                 name={playing ? 'pause.circle.fill' : 'play.circle.fill'}
                 fallback={playing ? '❚❚' : '▶'}
                 size={40}

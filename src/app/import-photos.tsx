@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
 import { persistPhotoFile } from '@/features/capture/photo-files';
 import { suggestImportMonths } from '@/features/journey/logic';
@@ -115,13 +115,13 @@ export default function ImportPhotosScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.md }}>
                     <Pressable onPress={() => shiftMonth(index, -1)} hitSlop={8}>
-                      <Symbol name="minus.circle" fallback="−" tintColor={colors.accent} />
+                      <Icon name="minus.circle" fallback="−" tintColor={colors.accent} />
                     </Pressable>
                     <Text style={[Type.body, { color: colors.textPrimary, fontWeight: '600' }]}>
                       Month {row.month}
                     </Text>
                     <Pressable onPress={() => shiftMonth(index, 1)} hitSlop={8}>
-                      <Symbol name="plus.circle" fallback="+" tintColor={colors.accent} />
+                      <Icon name="plus.circle" fallback="+" tintColor={colors.accent} />
                     </Pressable>
                   </View>
                   <Text style={[Type.caption, { color: colors.textTertiary }]}>

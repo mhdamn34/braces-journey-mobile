@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { GhostOverlay } from '@/features/capture/components/ghost-overlay';
 import { monthLabel, suggestedMonthNumber } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
@@ -86,7 +86,7 @@ export default function CameraScreen() {
           }}
         >
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Symbol name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
+            <Icon name="xmark.circle.fill" fallback="✕" size={28} tintColor="#FFFFFF" />
           </Pressable>
           <Text
             style={[
@@ -130,7 +130,7 @@ export default function CameraScreen() {
         >
           {previous ? (
             <Pressable onPress={() => setGhostVisible((v) => !v)} hitSlop={8}>
-              <Symbol
+              <Icon
                 name={ghostVisible ? 'eye.fill' : 'eye.slash'}
                 fallback={ghostVisible ? '◎' : '⊘'}
                 size={26}
@@ -157,7 +157,7 @@ export default function CameraScreen() {
             onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
             hitSlop={8}
           >
-            <Symbol
+            <Icon
               name="arrow.triangle.2.circlepath.camera"
               fallback="⟳"
               size={26}

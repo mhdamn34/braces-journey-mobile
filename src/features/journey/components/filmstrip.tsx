@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import type { JourneyEntry } from '@/features/journey/types';
 import { Radii, Space } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -29,7 +29,7 @@ export function Filmstrip({ entries, selectedId, onSelect, onPlay }: Props) {
           justifyContent: 'center',
         }}
       >
-        <Symbol name="play.fill" fallback="▶" size={16} tintColor={colors.onAccent} />
+        <Icon name="play.fill" fallback="▶" size={16} tintColor={colors.onAccent} />
       </Pressable>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Space.sm }}>
         {entries.map((entry) => {
