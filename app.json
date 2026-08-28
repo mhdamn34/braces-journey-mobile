@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "braces-journey",
+    "name": "BracesJourney",
     "slug": "braces-journey",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/braces-journey-logo.png",
     "scheme": "bracesjourney",
@@ -18,21 +18,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FAFAF8",
         "foregroundImage": "./assets/images/braces-journey-logo.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
-      ],
+      "permissions": ["android.permission.CAMERA"],
       "package": "com.mhdamin34.bracesjourney"
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -43,11 +36,18 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "BracesJourney lets you add past progress photos from your library. Photos stay on your device."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#FAFAF8",
           "image": "./assets/images/braces-journey-logo.png",
           "imageWidth": 160,
+          "dark": { "backgroundColor": "#141417" },
           "android": {
             "image": "./assets/images/braces-journey-logo.png",
             "imageWidth": 160

@@ -1,8 +1,14 @@
-export type PaymentMethodId = 'cash' | 'qrpay' | 'credit-card';
+export type PaymentMethod = 'cash' | 'qrpay' | 'card';
 
-export type PaymentMethod = {
-  id: PaymentMethodId;
-  label: string;
-  shortLabel: string;
-  description: string;
+export type PaymentRecord = {
+  id: string;
+  date: string; // ISO date
+  amount: number; // RM
+  method?: PaymentMethod;
+  note?: string;
+};
+
+export type PaymentsState = {
+  planTotal: number;
+  records: PaymentRecord[];
 };

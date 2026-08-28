@@ -1,16 +1,44 @@
+import {
+  InstrumentSerif_400Regular_Italic,
+  useFonts,
+} from '@expo-google-fonts/instrument-serif';
 import { Stack } from 'expo-router';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { SaveErrorBanner } from '@/components/save-error-banner';
+import { useTheme } from '@/theme/use-theme';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colors = useTheme();
+  const [fontsLoaded] = useFonts({ InstrumentSerif_400Regular_Italic });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <Stack screenOptions={{ headerShown: false }} />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg },
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="player" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="review" />
+        <Stack.Screen name="compare" />
+        <Stack.Screen name="import-photos" />
+      </Stack>
+      <SaveErrorBanner />
+    </GestureHandlerRootView>
   );
 }
-
