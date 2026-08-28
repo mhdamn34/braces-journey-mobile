@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
@@ -18,7 +18,8 @@ const FRAME_MS = 400;
 
 export default function PlayerScreen() {
   const params = useLocalSearchParams<{ startId?: string; autoplay?: string }>();
-  const entries = entriesWithPhotos(useStoreValue(journeyStore));
+  const rawEntries = useStoreValue(journeyStore);
+  const entries = useMemo(() => entriesWithPhotos(rawEntries), [rawEntries]);
   const startIndex = Math.max(
     0,
     entries.findIndex((e) => e.id === params.startId),
@@ -35,35 +36,37 @@ export default function PlayerScreen() {
   useEffect(() => {
     if (!playing) return;
     const timer = setInterval(() => {
-      setIndex((current) => {
-        if (current >= entries.length - 1) {
-          setPlaying(false);
-          return current;
-        }
-        Haptics.selectionAsync();
-        return current + 1;
-      });
+      setIndex((current) => (current >= entries.length - 1 ? current : current + 1));
     }, FRAME_MS);
     return () => clearInterval(timer);
   }, [playing, entries.length]);
 
+  useEffect(() => {
+    if (playing && index >= entries.length - 1) setPlaying(false);
+  }, [playing, index, entries.length]);
+
+  const prevIndexRef = useRef(index);
+  useEffect(() => {
+    if (prevIndexRef.current !== index) {
+      prevIndexRef.current = index;
+      Haptics.selectionAsync();
+    }
+  }, [index]);
+
   function scrubTo(x: number) {
     const ratio = Math.min(1, Math.max(0, x / barWidth));
-    const next = Math.round(ratio * (entries.length - 1));
-    setIndex((current) => {
-      if (next !== current) Haptics.selectionAsync();
-      return next;
-    });
+    setIndex(Math.round(ratio * (entries.length - 1)));
   }
 
   const pan = Gesture.Pan()
     .onBegin((e) => runOnJS(scrubTo)(e.x))
     .onUpdate((e) => runOnJS(scrubTo)(e.x));
 
-  if (entries.length === 0) {
-    router.back();
-    return null;
-  }
+  useEffect(() => {
+    if (entries.length === 0) router.back();
+  }, [entries.length]);
+  if (entries.length === 0) return null;
+
   const entry = entries[Math.min(index, entries.length - 1)];
 
   function togglePlay() {
