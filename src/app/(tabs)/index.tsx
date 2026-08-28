@@ -15,19 +15,17 @@ import { PhotoStage } from '@/features/journey/components/photo-stage';
 import { dueState, suggestedMonthNumber } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
 import { profileStore } from '@/features/profile/store';
-import type { Visit } from '@/features/visits/types';
+import { visitsStore } from '@/features/visits/store';
 import { formatMonthYear, todayIso } from '@/lib/dates';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
 
-// Task 18 replaces this with: import { visitsStore } from '@/features/visits/store';
-const visits: Visit[] = [];
-
 export default function JourneyScreen() {
   const colors = useTheme();
   const allEntries = useStoreValue(journeyStore);
   const profile = useStoreValue(profileStore);
+  const visits = useStoreValue(visitsStore);
   const entries = entriesWithPhotos(allEntries);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

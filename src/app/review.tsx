@@ -11,18 +11,16 @@ import { linkableVisitId, suggestedMonthNumber } from '@/features/journey/logic'
 import { addEntry, journeyStore } from '@/features/journey/store';
 import type { BracketColor } from '@/features/journey/types';
 import { profileStore } from '@/features/profile/store';
-import type { Visit } from '@/features/visits/types';
+import { visitsStore } from '@/features/visits/store';
 import { formatMonthName, todayIso } from '@/lib/dates';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { darkColors, Radii, Space, Type } from '@/theme/tokens';
-
-// Task 18 replaces this with: import { visitsStore } from '@/features/visits/store';
-const visits: Visit[] = [];
 
 export default function ReviewScreen() {
   const params = useLocalSearchParams<{ uri: string; width: string; height: string }>();
   const entries = useStoreValue(journeyStore);
   const profile = useStoreValue(profileStore);
+  const visits = useStoreValue(visitsStore);
   const [color, setColor] = useState<BracketColor | undefined>(undefined);
   const [note, setNote] = useState('');
   const savedRef = useRef(false);

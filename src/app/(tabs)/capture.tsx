@@ -9,14 +9,11 @@ import { Symbol } from '@/components/symbol';
 import { dueState, monthLabel, suggestedMonthNumber } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
 import { profileStore } from '@/features/profile/store';
-import type { Visit } from '@/features/visits/types';
+import { visitsStore } from '@/features/visits/store';
 import { formatShortDate, todayIso } from '@/lib/dates';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
-
-// Task 18 replaces this with: import { visitsStore } from '@/features/visits/store';
-const visits: Visit[] = [];
 
 const CHECKLIST = [
   'Same spot and lighting as last month',
@@ -28,6 +25,7 @@ export default function CaptureScreen() {
   const colors = useTheme();
   const entries = useStoreValue(journeyStore);
   const profile = useStoreValue(profileStore);
+  const visits = useStoreValue(visitsStore);
 
   const today = todayIso();
   const state = dueState(entries, visits, today);
