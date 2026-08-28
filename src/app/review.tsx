@@ -32,6 +32,7 @@ export default function ReviewScreen() {
   function save() {
     if (savedRef.current) return;
     savedRef.current = true;
+    // eslint-disable-next-line react-hooks/purity -- save() only runs from onPress, never during render
     const id = `${Date.now()}`;
     addEntry({
       id,

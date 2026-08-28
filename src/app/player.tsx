@@ -41,9 +41,12 @@ export default function PlayerScreen() {
     return () => clearInterval(timer);
   }, [playing, entries.length]);
 
-  useEffect(() => {
-    if (playing && index >= entries.length - 1) setPlaying(false);
-  }, [playing, index, entries.length]);
+  // Stop autoplay once the last frame is reached. Adjusted during render
+  // (guarded by this self-clearing condition) rather than in an effect, so
+  // this doesn't trigger an extra cascading render pass.
+  if (playing && index >= entries.length - 1) {
+    setPlaying(false);
+  }
 
   const prevIndexRef = useRef(index);
   useEffect(() => {

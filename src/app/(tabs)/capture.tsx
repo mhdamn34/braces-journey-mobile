@@ -52,7 +52,7 @@ export default function CaptureScreen() {
       <Text style={[Type.body, { color: colors.textSecondary }]}>{subtitle}</Text>
 
       <Card>
-        <Text style={[Type.label, { color: colors.textPrimary }]}>This month's photo</Text>
+        <Text style={[Type.label, { color: colors.textPrimary }]}>This month&apos;s photo</Text>
         {state === 'done' && latest?.photo ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.md }}>
             <Image

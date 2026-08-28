@@ -26,7 +26,7 @@ export function SaveErrorBanner() {
       }}
     >
       <Text style={[Type.label, { color: '#FFFFFF', textAlign: 'center' }]}>
-        Couldn't save your latest change — it's kept in memory. Tap to dismiss.
+        Couldn&apos;t save your latest change — it&apos;s kept in memory. Tap to dismiss.
       </Text>
     </Pressable>
   );

@@ -22,7 +22,9 @@ export default function EntryDetailScreen() {
   const entry = entries.find((e) => e.id === id);
   const [note, setNote] = useState(entry?.note ?? '');
   const noteRef = useRef(note);
-  noteRef.current = note;
+  useEffect(() => {
+    noteRef.current = note;
+  }, [note]);
   const entryId = entry?.id;
   useEffect(() => {
     if (!entryId) return;
