@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Text, TextInput } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
+import { Symbol } from '@/components/symbol';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
 import { monthLabel } from '@/features/journey/logic';
 import { deleteEntry, journeyStore, updateEntry } from '@/features/journey/store';
@@ -20,6 +21,16 @@ export default function EntryDetailScreen() {
   const entries = useStoreValue(journeyStore);
   const entry = entries.find((e) => e.id === id);
   const [note, setNote] = useState(entry?.note ?? '');
+  const noteRef = useRef(note);
+  noteRef.current = note;
+  const entryId = entry?.id;
+  useEffect(() => {
+    if (!entryId) return;
+    return () => {
+      updateEntry(entryId, { note: noteRef.current.trim() || undefined });
+    };
+  }, [entryId]);
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   if (!entry) {
     return (
@@ -51,12 +62,30 @@ export default function EntryDetailScreen() {
       <Text style={[Type.caption, { color: colors.textSecondary }]}>
         {formatFullDate(entry.date)}
       </Text>
-      {entry.photo ? (
+      {entry.photo && !photoFailed ? (
         <Image
           source={{ uri: entry.photo.uri }}
           style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: Radii.stage }}
           contentFit="cover"
+          onError={() => setPhotoFailed(true)}
         />
+      ) : entry.photo && photoFailed ? (
+        <View
+          style={{
+            width: '100%',
+            aspectRatio: 3 / 4,
+            borderRadius: Radii.stage,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: Space.sm,
+          }}
+        >
+          <Symbol name="photo" fallback="▢" size={28} tintColor={colors.textTertiary} />
+          <Text style={[Type.caption, { color: colors.textTertiary }]}>Photo file missing</Text>
+        </View>
       ) : null}
       <Text style={[Type.label, { color: colors.textSecondary }]}>Bracket colour</Text>
       <ColorSwatchPicker
