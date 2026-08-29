@@ -114,7 +114,7 @@ landmarks are fractions, that staleness cannot corrupt alignment.
 export const STAGE_ASPECT = 4 / 5;          // width / height
 export const CANONICAL_IPD = 0.62;          // eye-line length as a fraction of stage width
 export const CANONICAL_UPPER_ORIGIN = { x: 0.5, y: 0.30 };   // where noseBase lands
-export const CANONICAL_LOWER_ORIGIN = { x: 0.5, y: 0.85 };   // where chin lands
+export const CANONICAL_LOWER_ORIGIN = { x: 0.5, y: 0.94 };   // where chin lands
 ```
 
 The two origins sit at opposite ends of the stage because the landmarks sit at opposite ends
@@ -122,6 +122,19 @@ of their arches. The upper teeth are **below** the nose base, so the nose is pla
 lower teeth are **above** the chin, so the chin is placed low. Derived from the evidence
 photos: upper teeth fall roughly `0.52 × IPD` below the nose base, lower teeth roughly
 `0.48 × IPD` above the chin, which lands each arch near the middle of the stage.
+
+The lower origin is `0.94` rather than a gentler value because of a coverage constraint found
+in the simulator, not by calculation. A typical selfie leaves only ~9% of image height below the
+chin — about `0.18` square units once `s0 × scale` is applied. Whatever fraction of the stage
+sits below the chin must be filled from that. At `0.85` the stage asks for `0.1875` and
+letterboxes badly; at `0.90` it asks for `0.125` and still clips at the corners once roll
+rotates the frame; `0.94` asks for `0.075` and covers. Verified against the evidence photos at
+roll −5.4°.
+
+Note what is *not* an acceptable fix here. Increasing scale to guarantee coverage, or clamping
+translation to keep the image on stage, would each break the property the whole design rests on:
+that every photo of an arch shares one scale and one frame. A photo nudged to fit would show
+false movement against its neighbours. The canonical constants must fit the data instead.
 
 Every photo is normalized to a fixed canonical frame, **not pairwise against its partner**.
 One transform per photo, computed once, cached, and reused by compare, the player and the
@@ -209,7 +222,12 @@ origin to use.
 ### 6.1 Static guide (phase 1)
 
 A fixed outline drawn over the camera preview as a framing target. Requires no detection and
-replaces the current ghost overlay's job of "get roughly the same shot". `GhostOverlay` is kept
+replaces the current ghost overlay's job of "get roughly the same shot".
+
+It frames the **face**, not the mouth — the oval must enclose the eyes, nose base and chin,
+because those are the landmarks alignment reads. A mouth-only target would teach the user to
+shoot tight crops with no landmarks in frame, breaking both the tap editor and, later,
+detection. `GhostOverlay` is kept
 as an option the user can toggle, since it remains useful for judging colour and lighting.
 
 ### 6.2 Quality gate

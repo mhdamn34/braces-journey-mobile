@@ -18,5 +18,10 @@ export const CANONICAL_IPD = 0.62;
  *  nose base, lower teeth ≈ 0.48 × IPD above the chin. */
 export const CANONICAL_ORIGIN: Record<Arch, Point> = {
   upper: { x: 0.5, y: 0.3 },
-  lower: { x: 0.5, y: 0.85 },
+  // Typical selfies leave only ~0.094 of image height below the chin (~0.18
+  // square units after s0 x scale), so the stage must not ask for much below it:
+  // 0.85 needs 0.1875 and letterboxes badly, 0.90 needs 0.125 and still clips at
+  // the corners once roll rotates the frame. 0.94 needs 0.075 and covers.
+  // Verified in the simulator against the evidence photos at roll -5.4 degrees.
+  lower: { x: 0.5, y: 0.94 },
 };

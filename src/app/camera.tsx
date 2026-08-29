@@ -80,15 +80,17 @@ export default function CameraScreen() {
       {previous?.photo ? <GhostOverlay uri={previous.photo.uri} visible={ghostVisible} /> : null}
 
       {/* Static framing target — no detection needed. Prevention beats correction:
-          yaw and pitch are out-of-plane and cannot be fixed after the fact. */}
+          yaw and pitch are out-of-plane and cannot be fixed after the fact.
+          Frames the FACE, not the mouth: alignment reads the eyes and chin, so a
+          mouth-only target would teach crops that leave no landmarks to read. */}
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <View
           style={{
             position: 'absolute',
-            left: '12%',
-            right: '12%',
-            top: '30%',
-            bottom: '22%',
+            left: '14%',
+            right: '14%',
+            top: '26%',
+            bottom: '12%',
             borderRadius: 999,
             borderWidth: 2,
             borderColor: 'rgba(255,255,255,0.55)',
