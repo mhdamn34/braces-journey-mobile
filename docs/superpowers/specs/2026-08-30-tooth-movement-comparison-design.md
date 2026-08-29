@@ -32,7 +32,7 @@ movement rather than photography.
 - Measurement in millimetres. No physical scale reference exists in the photos, so any number
   would be fabricated. The app shows movement; it does not quantify it.
 - Any clinical claim, score, or assessment.
-- Correcting head yaw or jaw-opening perspective after the fact — see §7.
+- Correcting head yaw, head pitch, or jaw-opening perspective after the fact — see §7.
 
 ## 2. Decisions made during brainstorming
 
@@ -92,6 +92,7 @@ export type FaceAlignment = {
   chin: Point;                  // translation origin for the lower arch
   rollDeg: number;              // correctable
   yawDeg: number;               // NOT correctable — gated, never corrected
+  pitchDeg?: number;            // NOT correctable either (§7); absent for 'taps'
   openingRatio: number;         // |noseBase→chin| / IPD, resolution-independent
   source: 'mlkit' | 'taps' | 'model';
   version: 1;
@@ -217,6 +218,7 @@ as an option the user can toggle, since it remains useful for judging colour and
 |---|---|---|
 | No face detected | — | Fall back to manual taps |
 | Yaw | > 8° | **Block / warn** — uncorrectable, and it fakes movement |
+| Pitch | > 8° | **Block / warn**, once detection supplies the angle — see §7 |
 | Roll | > 15° | Allow, correct silently — fully correctable |
 | Face too small | IPD < 25% of frame width | Warn — too far, detail lost |
 | Opening mismatch (lower arch) | `openingRatio` differs > 15% from the calibrated target | Warn |
@@ -225,9 +227,11 @@ The calibrated target is the `openingRatio` of the user's first successfully ali
 the same first-photo calibration used for `CANONICAL_IPD` in §4.2. Until one exists, the
 opening check does not fire.
 
-Yaw is the only check that blocks, because it is the only one that lies. These are starting
-values to tune against real photos, not settled constants; they live in one module so tuning
-is a single-file change.
+Yaw and pitch are the checks that block, because they are the ones that lie — both are
+out-of-plane and neither can be undone after the fact. Pitch is unmeasurable until detection
+lands (taps cannot infer it), so its row is inert in phase 1; §7 records that as a known hole.
+These are starting values to tune against real photos, not settled constants; they live in one
+module so tuning is a single-file change.
 
 ### 6.3 Opening coach and auto-shutter (phase 2)
 
@@ -237,15 +241,23 @@ small, and opening matches. One mechanism covering both problems.
 
 ## 7. Known limits
 
-These are stated plainly in the UI rather than silently corrected:
+A similarity transform corrects scale, in-plane rotation and translation. Everything below is
+outside that set, so it is stated plainly in the UI, prevented, or warned about — never
+silently "corrected".
 
-1. **Head yaw is not correctable.** A similarity transform cannot undo out-of-plane rotation.
-   Yaw makes one side's teeth larger, which reads as movement. Prevented at capture, gated on
-   import.
-2. **Jaw opening rotates the lower arch out of plane.** Closed, the lower teeth are seen
+1. **Head yaw is not correctable.** Turning left or right is out-of-plane rotation. Yaw makes
+   one side's teeth larger, which reads as movement. Prevented at capture, gated on import —
+   the only blocking check.
+2. **Head pitch is not correctable either.** Nodding up or down foreshortens the face, which
+   moves the landmarks relative to each other rather than rigidly. Measured on the evidence
+   photos: nose-to-eye distance varies 148–183px across the three, a ~24% spread that is
+   pitch, not shooting distance. This is the main contributor to the residual characterized in
+   §14. Same family as yaw, and it should be gated the same way once detection supplies a pitch
+   angle; until then it is unmeasured, which is a known hole rather than a solved problem.
+3. **Jaw opening rotates the lower arch out of plane.** Closed, the lower teeth are seen
    edge-on; wide open, from above onto the chewing surfaces. No 2D transform fixes this, which
    is why the coach matters more for the lower arch than the upper.
-3. **Lighting and colour vary** and are not normalized. They do not affect geometry.
+4. **Lighting and colour vary** and are not normalized. They do not affect geometry.
 
 ## 8. Persistence and API contract
 
@@ -360,9 +372,21 @@ Per `AGENTS.md`: pure logic is unit-tested, screens are verified in the iOS simu
   the centre-origin translation and the `T·R·S` composition order.
 - Degenerate inputs: coincident eyes, zero IPD, extreme roll, missing chin.
 - `alignment/quality.test.ts` — each gate threshold at, above and below the boundary.
-- **Regression fixture from the three evidence photos** — assert that after alignment their eye
-  lines coincide within tolerance, and that upper-arch normalization is unaffected by the jaw
-  differences between photos 2 and 3. This is the real acceptance test for the feature.
+- **Regression fixture from the three evidence photos** — the real acceptance test for the
+  feature. A similarity transform has four degrees of freedom, and all four are spent: scale and
+  rotation pin the eye line's length and angle, translation pins the nose base. Nothing is left
+  to also pin absolute eye position, so "the eye lines coincide" is not an achievable criterion
+  and must not be asserted. Assert instead:
+  - every photo's **nose base lands exactly on the canonical origin** (the anchor);
+  - every photo's **eye line ends level and exactly `CANONICAL_IPD` long**;
+  - **upper-arch normalization is unchanged by the jaw differences** between photos 2 and 3;
+  - photo 1's roll is corrected to level, and photo 3's greater shooting distance scales up to
+    match photo 2.
+
+  Then **characterize** the leftover eye-position spread rather than asserting it away —
+  measured at x 0.044, y 0.093 in square units. It is an eye-region figure; the teeth sit near
+  the anchor and their residual is far smaller. If those bounds start failing, the landmarks or
+  the pitch situation changed: investigate, do not raise them.
 - `journey/api.test.ts` — the `alignment` mapper, including the `null` case.
 - Compare screen (both arches, aligned and unaligned pairs): simulator.
 
@@ -374,3 +398,8 @@ Each has a decided fallback, so none blocks implementation:
    only alignment source and add detection when the binding is settled.
 2. Chin vs `MOUTH_BOTTOM` (§12) — fallback is `MOUTH_BOTTOM` with a tightened opening threshold.
 3. Gate thresholds (§6.2) — starting values given; tuned against real photos in one module.
+4. `pitchDeg` (§4.1) ships with the detection follow-up, not phase 1: taps cannot infer pitch,
+   so adding the field earlier would persist a value that is always absent. Landing it means
+   extending the API validation in §8 and deciding whether it warrants a `version` bump — the
+   fallback is to keep `version: 1` and treat the field as optional, since every consumer
+   already tolerates its absence.
