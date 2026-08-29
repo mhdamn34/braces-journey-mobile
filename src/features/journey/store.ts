@@ -1,8 +1,9 @@
+import { fetchEntries } from '@/features/journey/api';
 import { deletePhotoFile } from '@/features/capture/photo-files';
 import type { JourneyEntry } from '@/features/journey/types';
-import { createJsonStore } from '@/lib/store/create-json-store';
+import { createApiStore } from '@/lib/store/create-api-store';
 
-export const journeyStore = createJsonStore<JourneyEntry[]>('journey.json', []);
+export const journeyStore = createApiStore<JourneyEntry[]>('journey.json', [], fetchEntries);
 
 function sorted(entries: JourneyEntry[]): JourneyEntry[] {
   return [...entries].sort((a, b) => a.monthNumber - b.monthNumber);
