@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { ListRow } from '@/components/list-row';
 import { Screen } from '@/components/screen';
+import { logout } from '@/features/auth/api';
 import { suggestedMonthNumber } from '@/features/journey/logic';
 import { journeyStore } from '@/features/journey/store';
 import { profileStore } from '@/features/profile/store';
@@ -41,6 +42,16 @@ export default function MoreScreen() {
           title="Settings"
           subtitle="Your details, dates, past photos"
           onPress={() => router.push('/settings')}
+        />
+        <ListRow
+          title="Sign out"
+          subtitle="Your data stays on the server"
+          onPress={() =>
+            Alert.alert('Sign out?', undefined, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: () => void logout() },
+            ])
+          }
         />
       </View>
     </Screen>

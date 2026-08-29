@@ -1,14 +1,18 @@
 import { Redirect, Tabs } from 'expo-router';
 
 import { Icon } from '@/components/icon';
+import { authStore } from '@/features/auth/store';
 import { profileStore } from '@/features/profile/store';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { useTheme } from '@/theme/use-theme';
 
 export default function TabsLayout() {
   const colors = useTheme();
+  const auth = useStoreValue(authStore);
   const profile = useStoreValue(profileStore);
 
+  if (auth.status === 'loading') return null;
+  if (auth.status === 'signedOut') return <Redirect href="/welcome" />;
   if (!profile.onboardedAt) return <Redirect href="/onboarding" />;
 
   return (
