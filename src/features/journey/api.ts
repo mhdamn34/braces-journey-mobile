@@ -1,3 +1,4 @@
+import type { FaceAlignment, Point } from '@/features/capture/alignment/types';
 import { ensurePhotoCached } from '@/features/journey/photo-cache';
 import type { JourneyEntry } from '@/features/journey/types';
 import { fetchAllPages } from '@/lib/api/pagination';
@@ -12,7 +13,54 @@ export type ApiJourneyEntry = {
   appointment_id: number | null;
   photo_url: string | null;
   created_at: string | null;
+  /** Optional so cached payloads and older servers still typecheck. */
+  alignment?: ApiFaceAlignment | null;
 };
+
+export type ApiPoint = { x: number; y: number };
+
+export type ApiFaceAlignment = {
+  left_eye: ApiPoint;
+  right_eye: ApiPoint;
+  nose_base: ApiPoint;
+  chin: ApiPoint;
+  roll_deg: number;
+  yaw_deg: number;
+  opening_ratio: number;
+  source: FaceAlignment['source'];
+  version: number;
+};
+
+const point = (p: ApiPoint): Point => ({ x: p.x, y: p.y });
+
+export function alignmentFromApi(raw: ApiFaceAlignment | null): FaceAlignment | undefined {
+  if (!raw) return undefined;
+  return {
+    leftEye: point(raw.left_eye),
+    rightEye: point(raw.right_eye),
+    noseBase: point(raw.nose_base),
+    chin: point(raw.chin),
+    rollDeg: raw.roll_deg,
+    yawDeg: raw.yaw_deg,
+    openingRatio: raw.opening_ratio,
+    source: raw.source,
+    version: 1,
+  };
+}
+
+export function alignmentToApi(alignment: FaceAlignment): ApiFaceAlignment {
+  return {
+    left_eye: point(alignment.leftEye),
+    right_eye: point(alignment.rightEye),
+    nose_base: point(alignment.noseBase),
+    chin: point(alignment.chin),
+    roll_deg: alignment.rollDeg,
+    yaw_deg: alignment.yawDeg,
+    opening_ratio: alignment.openingRatio,
+    source: alignment.source,
+    version: alignment.version,
+  };
+}
 
 export function entryFromApi(e: ApiJourneyEntry, photoUri: string | undefined): JourneyEntry {
   const date = e.photo_date ?? '';
@@ -27,6 +75,7 @@ export function entryFromApi(e: ApiJourneyEntry, photoUri: string | undefined): 
       e.bracket_color_name && e.bracket_color_hex
         ? { name: e.bracket_color_name, hex: e.bracket_color_hex }
         : undefined,
+    alignment: alignmentFromApi(e.alignment ?? null),
     note: e.notes ?? undefined,
     appointmentId: e.appointment_id !== null ? String(e.appointment_id) : undefined,
   };
