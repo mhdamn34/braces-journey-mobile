@@ -2,7 +2,13 @@ import { File as FileSystemFile } from 'expo-file-system';
 
 import { deletePhotoFile, persistPhotoFile } from '@/features/capture/photo-files';
 import { resizeForUpload } from '@/features/capture/resize';
-import { entryFromApi, fetchEntries, type ApiJourneyEntry } from '@/features/journey/api';
+import type { FaceAlignment } from '@/features/capture/alignment/types';
+import {
+  alignmentToApi,
+  entryFromApi,
+  fetchEntries,
+  type ApiJourneyEntry,
+} from '@/features/journey/api';
 import type { BracketColor, JourneyEntry } from '@/features/journey/types';
 import { apiRequest } from '@/lib/api/client';
 import { createApiStore } from '@/lib/store/create-api-store';
@@ -69,6 +75,17 @@ export async function updateEntry(
     sorted(
       entries.map((e) => (e.id === id ? entryFromApi(res.data, e.photo?.uri) : e)),
     ),
+  );
+}
+
+/** Server first (source of truth), then the cache row. The photo URI is
+ * preserved from the existing entry — the server response has no local path. */
+export async function setEntryAlignment(id: string, alignment: FaceAlignment): Promise<void> {
+  const res = await apiRequest<{ data: ApiJourneyEntry }>('PATCH', `/journey-entries/${id}`, {
+    body: { alignment: alignmentToApi(alignment) },
+  });
+  journeyStore.update((entries) =>
+    sorted(entries.map((e) => (e.id === id ? entryFromApi(res.data, e.photo?.uri) : e))),
   );
 }
 
