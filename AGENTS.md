@@ -34,6 +34,7 @@ persistence. Route files contain composition and navigation only.
 - Components ≤ ~150 lines, one per file. New dependencies need a written
   reason here:
   - `expo-secure-store` — Sanctum API token storage; Keychain/Keystore, never a JSON file.
+  - `expo-image-manipulator` — resize/compress photos before multipart upload (server caps at 10 MB).
 - Tests: `npm test`. Pure logic (stores, `journey/logic`, `lib/`) is
   unit-tested; screens are verified in the iOS simulator.
 

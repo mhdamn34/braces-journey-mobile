@@ -10,9 +10,8 @@ import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
 import { Icon } from '@/components/icon';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
-import { persistPhotoFile } from '@/features/capture/photo-files';
 import { suggestImportMonths } from '@/features/journey/logic';
-import { addEntry, journeyStore } from '@/features/journey/store';
+import { createEntry, journeyStore } from '@/features/journey/store';
 import type { BracketColor } from '@/features/journey/types';
 import { profileStore } from '@/features/profile/store';
 import { addMonthsIso, parseExifDate } from '@/lib/dates';
@@ -35,6 +34,7 @@ export default function ImportPhotosScreen() {
   const entries = useStoreValue(journeyStore);
   const profile = useStoreValue(profileStore);
   const [rows, setRows] = useState<Row[]>([]);
+  const [uploading, setUploading] = useState(false);
   const takenMonths = new Set(entries.map((e) => e.monthNumber));
 
   async function pickPhotos() {
@@ -70,25 +70,23 @@ export default function ImportPhotosScreen() {
     });
   }
 
-  function confirm() {
-    for (const row of rows) {
-      const id = `${Date.now()}-${row.month}`;
-      const date = row.creationDateIso ?? addMonthsIso(profile.treatmentStartDate, row.month - 1);
-      addEntry({
-        id,
-        monthNumber: row.month,
-        date,
-        photo: {
-          uri: persistPhotoFile(row.uri, id),
-          width: row.width,
-          height: row.height,
-          capturedAt: `${date}T12:00:00.000Z`,
-        },
-        bracketColor: row.color,
-        note: row.note.trim() || undefined,
-      });
+  async function confirm() {
+    setUploading(true);
+    try {
+      for (const row of rows) {
+        const date = row.creationDateIso ?? addMonthsIso(profile.treatmentStartDate, row.month - 1);
+        await createEntry({
+          monthNumber: row.month,
+          date,
+          photoUri: row.uri,
+          bracketColor: row.color,
+          note: row.note.trim() || undefined,
+        });
+      }
+      router.back();
+    } finally {
+      setUploading(false);
     }
-    router.back();
   }
 
   return (
@@ -156,8 +154,11 @@ export default function ImportPhotosScreen() {
             </Card>
           ))}
           <Button
-            label={`Add ${rows.length} ${rows.length === 1 ? 'month' : 'months'}`}
-            onPress={confirm}
+            label={
+              uploading ? 'Adding…' : `Add ${rows.length} ${rows.length === 1 ? 'month' : 'months'}`
+            }
+            onPress={() => void confirm()}
+            disabled={uploading}
           />
           <Button label="Start over" variant="secondary" onPress={() => setRows([])} />
         </>
