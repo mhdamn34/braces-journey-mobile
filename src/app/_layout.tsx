@@ -5,10 +5,12 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SaveErrorBanner } from '@/components/save-error-banner';
-import { initAuth } from '@/features/auth/store';
+import { authStore, initAuth } from '@/features/auth/store';
+import { refreshAllApiStores } from '@/lib/store/create-api-store';
 import { useTheme } from '@/theme/use-theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,18 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
+
+  // Cold-start refresh for an already-signed-in app arrives via sign-in
+  // routing (fresh sign-in) or this listener's first 'active' transition —
+  // no separate launch-time one-shot is added here.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && authStore.get().status === 'signedIn') {
+        void refreshAllApiStores();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (!fontsLoaded) return null;
 
