@@ -8,9 +8,12 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SaveErrorBanner } from '@/components/save-error-banner';
+import { initAuth } from '@/features/auth/store';
 import { useTheme } from '@/theme/use-theme';
 
 SplashScreen.preventAutoHideAsync();
+
+void initAuth();
 
 export default function RootLayout() {
   const colors = useTheme();

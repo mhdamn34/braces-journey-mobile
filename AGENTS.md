@@ -32,7 +32,8 @@ persistence. Route files contain composition and navigation only.
 - Serif (`Type.display/title/voice`) for headings and section voices only;
   system sans for everything functional.
 - Components ≤ ~150 lines, one per file. New dependencies need a written
-  reason here.
+  reason here:
+  - `expo-secure-store` — Sanctum API token storage; Keychain/Keystore, never a JSON file.
 - Tests: `npm test`. Pure logic (stores, `journey/logic`, `lib/`) is
   unit-tested; screens are verified in the iOS simulator.
 
