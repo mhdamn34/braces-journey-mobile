@@ -3,16 +3,19 @@
 Photo-first braces journey tracker. One ritual: after every bracket change,
 capture a ghost-aligned photo of your teeth, tag the bracket colour, add a
 note. The Journey tab plays the months back as a flipbook and compares any
-two months with a slider. Everything is stored on-device.
+two months with a slider. Data lives on the braces-journey-be API
+(server-authoritative); reads come from per-feature JSON caches that keep the
+app browsable offline, writes require a connection.
 
 Spec: `docs/superpowers/specs/2026-08-28-braces-journey-redesign-design.md`
 
 ## How to add a feature (the recipe)
 
 1. Define types in `src/features/<name>/types.ts`.
-2. Create a store: `createJsonStore<T>('name.json', initial)` in
-   `src/features/<name>/store.ts`. Export plain mutation functions
-   (`addX`, `updateX`, `deleteX`) beside it.
+2. Create a store: `createApiStore<T>('name.json', initial, fetchRemote)` in
+   `src/features/<name>/store.ts`, with an `api.ts` beside it for mappers
+   (snake_case ↔ camelCase, ISO datetimes split at the boundary). Export
+   async mutation functions that call the API first, then update the cache.
 3. Build components in `src/features/<name>/components/`, reading state with
    `useStoreValue(store)`.
 4. Add a thin route file in `src/app/` that composes them.
@@ -35,18 +38,25 @@ persistence. Route files contain composition and navigation only.
   reason here:
   - `expo-secure-store` — Sanctum API token storage; Keychain/Keystore, never a JSON file.
   - `expo-image-manipulator` — resize/compress photos before multipart upload (server caps at 10 MB).
+- API calls only via `src/lib/api/client.ts` (`apiRequest`); dates cross the
+  boundary as `YYYY-MM-DD` (+ `HH:MM` for visit times) — screens never see
+  ISO datetimes.
+- Write actions in screens go through `useAsyncAction` — pending label +
+  danger-caption error, input preserved on failure.
 - Tests: `npm test`. Pure logic (stores, `journey/logic`, `lib/`) is
   unit-tested; screens are verified in the iOS simulator.
 
 ## Structure
 
-- `src/lib/` — store factory, dates, currency. `src/theme/` — tokens + hook.
+- `src/lib/` — store factories, dates, currency, and `src/lib/api/` (client,
+  token, pagination). `src/theme/` — tokens + hook.
 - `src/components/` — shared primitives (screen, card, button, chip, rows…).
-- `src/features/` — journey, capture, profile (+ onboarding steps), visits,
-  payments. Each: types + store + components.
-- `src/app/` — expo-router routes: `(tabs)/` (Journey, Capture, More),
-  camera, review, player, compare, import-photos, entry/[id], visits/*,
-  payments, settings, onboarding.
+- `src/features/` — auth, journey, capture, profile (+ onboarding steps),
+  visits, payments, migration. Each: types + store + components.
+- `src/app/` — expo-router routes: `welcome`, `sign-in`, `create-account`,
+  `(tabs)/` (Journey, Capture, More), camera, review, player, compare,
+  import-photos, entry/[id], visits/*, payments, settings, onboarding,
+  `migrate`, `merge-months`.
 
 ## Domain cheatsheet
 
@@ -57,6 +67,9 @@ persistence. Route files contain composition and navigation only.
   after it, or 30+ days since the last photo.
 - Photo files: `<documentDirectory>/photos/`, owned by journey entries;
   deleting an entry deletes its file.
+- Auth: Sanctum bearer token in expo-secure-store; token gate in
+  `(tabs)/_layout` ahead of the onboarding gate. Photo cache:
+  `<documentDirectory>/photos/<entryId>.<ext>`, server ids.
 
 ## Maintenance rule
 
