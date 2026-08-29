@@ -44,3 +44,4 @@ example
 /android
 .superpowers/
 .claude/worktrees/
+.claude/skills/
