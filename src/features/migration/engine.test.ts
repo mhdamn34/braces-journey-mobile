@@ -158,6 +158,8 @@ test('a 422 month conflict counts as already uploaded', async () => {
 
 test('failures are recorded and a re-run skips done items', async () => {
   let visitCalls = 0;
+  let entryPostCalls = 0;
+  let lastEntryFormData: FormData | undefined;
   routeFetch((url, init) => {
     if (init.method === 'PUT' && url.includes('/profile')) {
       return jsonResponse(200, { data: { name: 'A', clinic_name: null, orthodontist_name: null, treatment_start_date: null, planned_months: null, braces_type: null } });
@@ -168,7 +170,9 @@ test('failures are recorded and a re-run skips done items', async () => {
       return jsonResponse(201, { data: { id: 70, title: 'B', appointment_date: '2026-02-10T10:00:00+00:00', type: null, status: 'completed', doctor_name: null, clinic_name: null, cost: null, currency: 'MYR', notes: null, created_at: null } });
     }
     if (init.method === 'POST' && url.endsWith('/journey-entries')) {
-      return jsonResponse(201, { data: { id: 91, month_number: 1, photo_date: '2026-02-10', bracket_color_name: null, bracket_color_hex: null, notes: null, appointment_id: null, photo_url: null, created_at: null } });
+      entryPostCalls += 1;
+      lastEntryFormData = init.body as FormData;
+      return jsonResponse(201, { data: { id: 91, month_number: 1, photo_date: '2026-02-10', bracket_color_name: null, bracket_color_hex: null, notes: null, appointment_id: 70, photo_url: null, created_at: null } });
     }
     if (init.method === 'POST' && url.endsWith('/payments')) {
       return jsonResponse(201, { data: { id: 6, amount: 500, currency: 'MYR', method: 'cash', paid_at: '2026-02-10', notes: null, created_at: null } });
@@ -177,16 +181,27 @@ test('failures are recorded and a re-run skips done items', async () => {
     return undefined;
   });
 
+  // Run 1: the visit upload fails, so the dependent entry (appointmentId: 'v1')
+  // must be DEFERRED rather than uploaded link-less — no POST /journey-entries.
   const first = await runMigration(snapshot(), () => undefined);
-  expect(first.failed).toBe(1);
+  expect(first.failed).toBe(2); // visit:v1 failed + entry:e1 deferred
+  expect(entryPostCalls).toBe(0);
+  expect(migrationStore.get().items['entry:e1']).toBe('failed');
   expect(migrationStore.get().completedAt).toBeUndefined();
   expect(migrationStore.get().items['profile']).toBe('done');
 
   const profilePuts = () =>
     fetchMock.mock.calls.filter(([u, i]) => (i as RequestInit).method === 'PUT' && String(u).includes('/profile')).length;
   const before = profilePuts();
+
+  // Run 2: the visit upload now succeeds, so the entry uploads WITH the
+  // mapped appointment_id — the local↔server link is preserved, not lost.
   const second = await runMigration(snapshot(), () => undefined);
   expect(second.failed).toBe(0);
   expect(profilePuts()).toBe(before); // profile not re-uploaded
+  expect(entryPostCalls).toBe(1);
+  expect(lastEntryFormData?.get('appointment_id')).toBe('70');
+  expect(migrationStore.get().visitIdMap.v1).toBe('70');
+  expect(migrationStore.get().items['entry:e1']).toBe('done');
   expect(migrationStore.get().completedAt).toBeTruthy();
 });

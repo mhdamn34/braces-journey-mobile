@@ -151,7 +151,25 @@ export async function runMigration(
   }
 
   for (const entry of entries) {
-    await step(`entry:${entry.id}`, `Month ${entry.monthNumber}`, async () => {
+    const key = `entry:${entry.id}`;
+    // A local appointmentId that points at one of this snapshot's visits is a
+    // real dependency — don't upload the entry until that visit's upload has
+    // actually landed, or the local↔server link is lost forever the moment
+    // this entry is marked done with no appointment_id. A dangling
+    // appointmentId (no matching local visit) has nothing to wait for.
+    const dependentVisit = entry.appointmentId
+      ? snapshot.visits.find((v) => v.id === entry.appointmentId)
+      : undefined;
+    const visitPending = dependentVisit !== undefined && status(`visit:${dependentVisit.id}`) !== 'done';
+
+    if (status(key) !== 'done' && visitPending) {
+      mark(key, 'failed');
+      failed += 1;
+      onProgress({ done, failed, total, label: `Month ${entry.monthNumber}` });
+      continue;
+    }
+
+    await step(key, `Month ${entry.monthNumber}`, async () => {
       const mappedVisitId = entry.appointmentId
         ? migrationStore.get().visitIdMap[entry.appointmentId]
         : undefined;
