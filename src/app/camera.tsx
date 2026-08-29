@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
@@ -17,6 +17,9 @@ import { useStoreValue } from '@/lib/store/use-store-value';
 import { darkColors, Radii, Space, Type } from '@/theme/tokens';
 
 export default function CameraScreen() {
+  // Absolute-positioned SafeAreaView reports zero insets inside this
+  // fullScreenModal on the new architecture — pad from the hook instead.
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('front');
   const [ghostVisible, setGhostVisible] = useState(true);
@@ -76,7 +79,7 @@ export default function CameraScreen() {
       />
       {previous?.photo ? <GhostOverlay uri={previous.photo.uri} visible={ghostVisible} /> : null}
 
-      <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, paddingTop: insets.top }}>
         <View
           style={{
             flexDirection: 'row',
@@ -104,9 +107,9 @@ export default function CameraScreen() {
             Month {nextMonth}
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
 
-      <SafeAreaView style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom }}>
         {previous ? (
           <Text
             style={[
@@ -165,7 +168,7 @@ export default function CameraScreen() {
             />
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

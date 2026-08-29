@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ColorDot } from '@/components/color-dot';
 import { Icon } from '@/components/icon';
@@ -17,6 +17,9 @@ import { darkColors, Radii, Space, Type } from '@/theme/tokens';
 const FRAME_MS = 400;
 
 export default function PlayerScreen() {
+  // Absolute-positioned SafeAreaView reports zero insets inside this
+  // fullScreenModal on the new architecture — pad from the hook instead.
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ startId?: string; autoplay?: string }>();
   const rawEntries = useStoreValue(journeyStore);
   const entries = useMemo(() => entriesWithPhotos(rawEntries), [rawEntries]);
@@ -85,7 +88,7 @@ export default function PlayerScreen() {
         contentFit="contain"
         recyclingKey="player"
       />
-      <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, paddingTop: insets.top }}>
         <View
           style={{
             flexDirection: 'row',
@@ -121,8 +124,8 @@ export default function PlayerScreen() {
             </Pressable>
           </View>
         </View>
-      </SafeAreaView>
-      <SafeAreaView style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+      </View>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom }}>
         <View style={{ padding: Space.lg, gap: Space.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.md }}>
             <Pressable onPress={togglePlay} hitSlop={8}>
@@ -166,7 +169,7 @@ export default function PlayerScreen() {
             ))}
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
