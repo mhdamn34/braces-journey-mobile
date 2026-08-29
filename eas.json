@@ -6,13 +6,16 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_API_URL": "https://braces-journey-be.test" }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_API_URL": "https://braces-journey-be.test" }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": { "EXPO_PUBLIC_API_URL": "https://braces-journey-be.test" }
     }
   },
   "submit": {
