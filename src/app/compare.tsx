@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -9,6 +8,8 @@ import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
+import type { Arch } from '@/features/capture/alignment/types';
+import { AlignedPhoto } from '@/features/journey/components/aligned-photo';
 import { monthLabel } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
 import { useStoreValue } from '@/lib/store/use-store-value';
@@ -19,6 +20,7 @@ export default function CompareScreen() {
   const [beforeId, setBeforeId] = useState(entries[0]?.id);
   const [afterId, setAfterId] = useState(entries.at(-1)?.id);
   const [stageWidth, setStageWidth] = useState(0);
+  const [arch, setArch] = useState<Arch>('upper');
   const divider = useSharedValue(0.5);
 
   const pan = Gesture.Pan().onUpdate((e) => {
@@ -57,28 +59,22 @@ export default function CompareScreen() {
           style={{
             borderRadius: Radii.stage,
             overflow: 'hidden',
-            aspectRatio: 3 / 4,
+            aspectRatio: 4 / 5,
             backgroundColor: darkColors.surface,
           }}
         >
           {stageWidth > 0 ? (
             <>
-              <Image
-                source={{ uri: after.photo!.uri }}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
+              <AlignedPhoto entry={after} stageWidth={stageWidth} arch={arch} />
               <Animated.View
                 style={[
                   { position: 'absolute', top: 0, bottom: 0, left: 0, overflow: 'hidden' },
                   clipStyle,
                 ]}
               >
-                <Image
-                  source={{ uri: before.photo!.uri }}
-                  style={{ width: stageWidth, height: '100%' }}
-                  contentFit="cover"
-                />
+                <View style={{ width: stageWidth, height: '100%' }}>
+                  <AlignedPhoto entry={before} stageWidth={stageWidth} arch={arch} />
+                </View>
               </Animated.View>
               <Animated.View
                 style={[
@@ -102,6 +98,24 @@ export default function CompareScreen() {
       <Text style={[Type.caption, { color: darkColors.textTertiary, textAlign: 'center' }]}>
         Drag anywhere on the photo
       </Text>
+
+      <View style={{ flexDirection: 'row', gap: Space.sm, justifyContent: 'center' }}>
+        <Chip label="Upper" selected={arch === 'upper'} onPress={() => setArch('upper')} />
+        <Chip label="Lower" selected={arch === 'lower'} onPress={() => setArch('lower')} />
+      </View>
+
+      {!before.alignment || !after.alignment ? (
+        <Button
+          label="Not aligned — add anchors"
+          variant="secondary"
+          onPress={() =>
+            router.push({
+              pathname: '/align/[id]',
+              params: { id: !before.alignment ? before.id : after.id },
+            })
+          }
+        />
+      ) : null}
 
       <Text style={[Type.label, { color: darkColors.textSecondary }]}>Before</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Space.sm }}>
