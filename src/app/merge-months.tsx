@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -9,6 +9,7 @@ import { createEntry } from '@/features/journey/store';
 import {
   captureLocalSnapshot,
   fetchServerMonths,
+  isMonthConflict,
   markMigrationCompleted,
 } from '@/features/migration/engine';
 import { refreshAllApiStores } from '@/lib/store/create-api-store';
@@ -21,15 +22,25 @@ export default function MergeMonthsScreen() {
   // Captured once, before any refresh — this is the device's v3 data.
   const snapshot = useMemo(() => captureLocalSnapshot(), []);
   const [serverMonths, setServerMonths] = useState<Set<number> | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(snapshot.entries.map((e) => e.id)),
   );
 
-  useEffect(() => {
+  // Until the server months are actually known, no upload — treating a fetch
+  // failure as "no months" would offer duplicates of every month.
+  const loadMonths = useCallback(() => {
     fetchServerMonths()
-      .then(setServerMonths)
-      .catch(() => setServerMonths(new Set()));
+      .then((months) => {
+        setServerMonths(months);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true));
   }, []);
+
+  useEffect(() => {
+    loadMonths();
+  }, [loadMonths]);
 
   const localOnlyEntries = useMemo(
     () =>
@@ -43,14 +54,20 @@ export default function MergeMonthsScreen() {
     if (upload) {
       for (const entry of localOnlyEntries) {
         if (!selected.has(entry.id)) continue;
-        await createEntry({
-          monthNumber: entry.monthNumber,
-          date: entry.date,
-          photoUri: entry.photo?.uri,
-          bracketColor: entry.bracketColor,
-          note: entry.note,
-          // visit links are not merged — visits stay server-authoritative
-        });
+        try {
+          await createEntry({
+            monthNumber: entry.monthNumber,
+            date: entry.date,
+            photoUri: entry.photo?.uri,
+            bracketColor: entry.bracketColor,
+            note: entry.note,
+            // visit links are not merged — visits stay server-authoritative
+          });
+        } catch (e) {
+          // A month that landed on a previous partial attempt is success —
+          // rethrowing would deadlock every retry on the first such month.
+          if (!isMonthConflict(e)) throw e;
+        }
       }
     }
     markMigrationCompleted();
@@ -72,7 +89,20 @@ export default function MergeMonthsScreen() {
   return (
     <Screen>
       <Text style={[Type.display, { color: colors.textPrimary }]}>Months on this phone</Text>
-      {serverMonths === null ? null : (
+      {loadFailed ? (
+        <>
+          <Text style={[Type.caption, { color: colors.danger }]}>
+            Could not load the months already in your account — check your connection.
+          </Text>
+          <Button
+            label="Try again"
+            onPress={() => {
+              setLoadFailed(false);
+              loadMonths();
+            }}
+          />
+        </>
+      ) : serverMonths === null ? null : (
         <>
           <Text style={[Type.body, { color: colors.textSecondary }]}>
             Your account already has a journey. These months exist only on this phone — choose

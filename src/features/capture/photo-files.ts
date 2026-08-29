@@ -26,3 +26,17 @@ export function deletePhotoFile(uri: string): void {
     // best-effort: a missing file is fine
   }
 }
+
+/** Sign-out wipe: a signed-out device must not keep the previous account's
+ * photos where the next sign-in could upload them. Best-effort. */
+export function deleteAllPhotoFiles(): void {
+  try {
+    const dir = new Directory(Paths.document, 'photos');
+    if (!dir.exists) return;
+    for (const item of dir.list()) {
+      if (item instanceof File) item.delete();
+    }
+  } catch {
+    // storage cleanup is never worth failing a sign-out over
+  }
+}

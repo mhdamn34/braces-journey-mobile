@@ -1,4 +1,4 @@
-import { onUnauthorized, setTokenProvider } from '@/lib/api/client';
+import { setTokenProvider } from '@/lib/api/client';
 import { cachedToken, clearToken, loadToken } from '@/lib/api/token';
 import type { JsonStore } from '@/lib/store/create-json-store';
 
@@ -43,9 +43,8 @@ export async function initAuth(): Promise<void> {
   if (initialized) return;
   initialized = true;
   setTokenProvider(cachedToken);
-  onUnauthorized(() => {
-    void signOutLocally();
-  });
+  // The 401 handler lives in auth/clear-local-data (it must wipe caches,
+  // photos, and migration scratch too) — the root layout wires it at startup.
   const token = await loadToken();
   authStore.set({ status: token ? 'signedIn' : 'signedOut' });
 }

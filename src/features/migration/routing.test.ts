@@ -2,6 +2,7 @@ jest.mock('@/features/migration/engine', () => ({
   captureLocalSnapshot: jest.fn(),
   localDataPresent: jest.requireActual('@/features/migration/engine').localDataPresent,
   migrationCompleted: jest.fn(),
+  markMigrationCompleted: jest.fn(),
   serverInventory: jest.fn(),
   fetchServerMonths: jest.fn(),
 }));
@@ -52,10 +53,11 @@ jest.mock('expo-secure-store', () => ({
 import {
   captureLocalSnapshot,
   fetchServerMonths,
+  markMigrationCompleted,
   migrationCompleted,
   serverInventory,
 } from '@/features/migration/engine';
-import { routeAfterSignIn } from '@/features/migration/routing';
+import { routeAfterRegister, routeAfterSignIn } from '@/features/migration/routing';
 import { refreshAllApiStores } from '@/lib/store/create-api-store';
 
 const emptySnapshot = {
@@ -71,19 +73,21 @@ const localSnapshot = {
 
 beforeEach(() => jest.clearAllMocks());
 
-test('no local data → refresh and go home', async () => {
+test('no local data → stamp completed, refresh, and go home', async () => {
   (captureLocalSnapshot as jest.Mock).mockReturnValue(emptySnapshot);
   (migrationCompleted as jest.Mock).mockReturnValue(false);
   await expect(routeAfterSignIn()).resolves.toBe('/');
+  expect(markMigrationCompleted).toHaveBeenCalled();
   expect(refreshAllApiStores).toHaveBeenCalled();
 });
 
-test('local data + empty server account → /migrate (no refresh yet)', async () => {
+test('local data + empty server account → /migrate (no refresh, no stamp yet)', async () => {
   (captureLocalSnapshot as jest.Mock).mockReturnValue(localSnapshot);
   (migrationCompleted as jest.Mock).mockReturnValue(false);
   (serverInventory as jest.Mock).mockResolvedValue({ entries: 0, visits: 0, payments: 0 });
   await expect(routeAfterSignIn()).resolves.toBe('/migrate');
   expect(refreshAllApiStores).not.toHaveBeenCalled();
+  expect(markMigrationCompleted).not.toHaveBeenCalled();
 });
 
 test('local data + non-empty server with local-only months → /merge-months', async () => {
@@ -92,14 +96,16 @@ test('local data + non-empty server with local-only months → /merge-months', a
   (serverInventory as jest.Mock).mockResolvedValue({ entries: 2, visits: 0, payments: 0 });
   (fetchServerMonths as jest.Mock).mockResolvedValue(new Set([1, 2]));
   await expect(routeAfterSignIn()).resolves.toBe('/merge-months');
+  expect(markMigrationCompleted).not.toHaveBeenCalled();
 });
 
-test('non-empty server, nothing local-only → refresh and go home', async () => {
+test('non-empty server, nothing local-only → stamp completed, refresh, and go home', async () => {
   (captureLocalSnapshot as jest.Mock).mockReturnValue(localSnapshot);
   (migrationCompleted as jest.Mock).mockReturnValue(false);
   (serverInventory as jest.Mock).mockResolvedValue({ entries: 2, visits: 0, payments: 0 });
   (fetchServerMonths as jest.Mock).mockResolvedValue(new Set([3]));
   await expect(routeAfterSignIn()).resolves.toBe('/');
+  expect(markMigrationCompleted).toHaveBeenCalled();
   expect(refreshAllApiStores).toHaveBeenCalled();
 });
 
@@ -107,4 +113,23 @@ test('already-completed migration short-circuits home', async () => {
   (captureLocalSnapshot as jest.Mock).mockReturnValue(localSnapshot);
   (migrationCompleted as jest.Mock).mockReturnValue(true);
   await expect(routeAfterSignIn()).resolves.toBe('/');
+});
+
+test('register with local data and no completed migration → /migrate', () => {
+  (captureLocalSnapshot as jest.Mock).mockReturnValue(localSnapshot);
+  (migrationCompleted as jest.Mock).mockReturnValue(false);
+  expect(routeAfterRegister()).toBe('/migrate');
+  expect(serverInventory).not.toHaveBeenCalled(); // a fresh account is empty by definition
+});
+
+test('register with no local data → /onboarding', () => {
+  (captureLocalSnapshot as jest.Mock).mockReturnValue(emptySnapshot);
+  (migrationCompleted as jest.Mock).mockReturnValue(false);
+  expect(routeAfterRegister()).toBe('/onboarding');
+});
+
+test('register after an already-completed migration → /onboarding', () => {
+  (captureLocalSnapshot as jest.Mock).mockReturnValue(localSnapshot);
+  (migrationCompleted as jest.Mock).mockReturnValue(true);
+  expect(routeAfterRegister()).toBe('/onboarding');
 });

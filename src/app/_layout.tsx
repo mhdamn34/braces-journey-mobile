@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SaveErrorBanner } from '@/components/save-error-banner';
+import { initClearLocalDataOnUnauthorized } from '@/features/auth/clear-local-data';
 import { authStore, initAuth } from '@/features/auth/store';
 import { refreshAllApiStores } from '@/lib/store/create-api-store';
 import { useTheme } from '@/theme/use-theme';
@@ -16,6 +17,7 @@ import { useTheme } from '@/theme/use-theme';
 SplashScreen.preventAutoHideAsync();
 
 void initAuth();
+initClearLocalDataOnUnauthorized();
 
 export default function RootLayout() {
   const colors = useTheme();

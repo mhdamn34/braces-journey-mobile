@@ -5,6 +5,7 @@ import { Text, TextInput } from 'react-native';
 import { Button } from '@/components/button';
 import { Screen } from '@/components/screen';
 import { register } from '@/features/auth/api';
+import { routeAfterRegister } from '@/features/migration/routing';
 import { useAsyncAction } from '@/lib/use-async-action';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -17,7 +18,8 @@ export default function CreateAccountScreen() {
 
   const { run, pending, error } = useAsyncAction(async () => {
     await register({ name: name.trim(), email: email.trim(), password });
-    router.replace('/onboarding');
+    // A v3 user with local data gets migration, not the onboarding pager.
+    router.replace(routeAfterRegister());
   });
 
   const valid = name.trim().length > 0 && email.includes('@') && password.length >= 8;

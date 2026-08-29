@@ -1,10 +1,10 @@
 import Constants from 'expo-constants';
 
-import { signedIn, signOutLocally } from '@/features/auth/store';
+import { clearLocalData } from '@/features/auth/clear-local-data';
+import { signedIn } from '@/features/auth/store';
 import { profileStore } from '@/features/profile/store';
 import { apiRequest } from '@/lib/api/client';
 import { saveToken } from '@/lib/api/token';
-import { resetAllApiStores } from '@/lib/store/create-api-store';
 
 type AuthResponse = { token: string; user: { id: number; name: string; email: string } };
 
@@ -40,6 +40,5 @@ export async function logout(): Promise<void> {
   } catch {
     // the token may already be dead — local sign-out proceeds regardless
   }
-  await signOutLocally();
-  resetAllApiStores();
+  await clearLocalData();
 }

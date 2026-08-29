@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { Screen } from '@/components/screen';
 import {
   captureLocalSnapshot,
+  migrationStore,
   runMigration,
   type LocalSnapshot,
   type MigrationProgress,
@@ -20,14 +21,18 @@ export default function MigrateScreen() {
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [running, setRunning] = useState(false);
   const [failed, setFailed] = useState(0);
+  const [quotaHit, setQuotaHit] = useState(false);
   const [finished, setFinished] = useState(false);
 
   async function start() {
     if (running) return;
     setRunning(true);
-    snapshotRef.current ??= captureLocalSnapshot();
+    // A run interrupted by a kill resumes from its persisted snapshot —
+    // runMigration re-persists whichever copy is used before uploading.
+    snapshotRef.current ??= migrationStore.get().snapshot ?? captureLocalSnapshot();
     const result = await runMigration(snapshotRef.current, setProgress);
     setFailed(result.failed);
+    setQuotaHit(result.quotaHit);
     setFinished(result.failed === 0);
     setRunning(false);
   }
@@ -71,6 +76,12 @@ export default function MigrateScreen() {
           <Text style={[Type.caption, { color: colors.danger }]}>
             {failed} {failed === 1 ? 'item' : 'items'} could not be uploaded. Retry when you have a
             connection — nothing already uploaded is sent twice.
+          </Text>
+        ) : null}
+        {finished && quotaHit ? (
+          <Text style={[Type.caption, { color: colors.textSecondary }]}>
+            Free plan photo limit reached — every month was moved, but photos over the limit stayed
+            on this phone.
           </Text>
         ) : null}
       </View>

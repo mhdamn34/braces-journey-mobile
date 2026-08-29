@@ -2,6 +2,7 @@ import { Redirect, Tabs } from 'expo-router';
 
 import { Icon } from '@/components/icon';
 import { authStore } from '@/features/auth/store';
+import { migrationInProgress } from '@/features/migration/engine';
 import { profileStore } from '@/features/profile/store';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { useTheme } from '@/theme/use-theme';
@@ -13,6 +14,9 @@ export default function TabsLayout() {
 
   if (auth.status === 'loading') return null;
   if (auth.status === 'signedOut') return <Redirect href="/welcome" />;
+  // A relaunch mid-migration resumes the upload — landing home would let the
+  // first cache refresh wipe the not-yet-uploaded local data.
+  if (migrationInProgress()) return <Redirect href="/migrate" />;
   if (!profile.onboardedAt) return <Redirect href="/onboarding" />;
 
   return (

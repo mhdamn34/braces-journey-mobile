@@ -13,6 +13,8 @@ jest.mock('expo-secure-store', () => ({
 
 import { login, logout, register } from '@/features/auth/api';
 import { authStore } from '@/features/auth/store';
+import { journeyStore } from '@/features/journey/store';
+import { migrationStore } from '@/features/migration/engine';
 import { profileStore } from '@/features/profile/store';
 import { cachedToken } from '@/lib/api/token';
 
@@ -55,8 +57,14 @@ test('login stores the token and marks the profile onboarded', async () => {
 
 test('logout revokes the token remotely, clears local auth even if the call fails', async () => {
   secure.api_token = 'tok';
+  journeyStore.set([{ id: '91', monthNumber: 1, date: '2026-02-10' }]);
+  migrationStore.set({ completedAt: 'x', items: { profile: 'done' }, visitIdMap: {} });
   fetchMock.mockRejectedValue(new TypeError('down'));
   await logout();
   expect(cachedToken()).toBeNull();
   expect(authStore.get().status).toBe('signedOut');
+  // logout goes through the shared clearLocalData routine — caches and the
+  // migration scratch must not survive into the next account.
+  expect(journeyStore.get()).toEqual([]);
+  expect(migrationStore.get()).toEqual({ items: {}, visitIdMap: {} });
 });

@@ -24,12 +24,25 @@ export type MigrationState = {
   completedAt?: string;
   items: Record<string, 'done' | 'failed'>;
   visitIdMap: Record<string, string>;
+  /** Persisted at run start so a killed-mid-migration app can resume from
+   * the same data instead of losing it to the first cache refresh. */
+  snapshot?: LocalSnapshot;
+  /** The free-plan photo quota was hit — local photo files must survive the
+   * post-migration cleanup for a future premium re-upload. */
+  quotaHit?: boolean;
 };
 
-export const migrationStore = createJsonStore<MigrationState>('migration.json', {
-  items: {},
-  visitIdMap: {},
-});
+const initialMigrationState: MigrationState = { items: {}, visitIdMap: {} };
+
+export const migrationStore = createJsonStore<MigrationState>(
+  'migration.json',
+  initialMigrationState,
+);
+
+/** Sign-out wipe — the scratch file must not leak into the next account. */
+export function resetMigrationState(): void {
+  migrationStore.set(initialMigrationState);
+}
 
 export type MigrationProgress = { done: number; failed: number; total: number; label: string };
 
@@ -57,9 +70,22 @@ export function migrationCompleted(): boolean {
   return migrationStore.get().completedAt !== undefined;
 }
 
-/** Also used by the merge path and by "skip" — a stamped migration never re-prompts. */
+/** True between a run's first upload and the completion stamp — a relaunch
+ * mid-migration must land back on /migrate, not home (where the first cache
+ * refresh would wipe the un-uploaded local data). */
+export function migrationInProgress(): boolean {
+  return migrationStore.get().snapshot !== undefined && !migrationCompleted();
+}
+
+/** Also used by the merge path and by "skip" — a stamped migration never
+ * re-prompts. Drops the persisted snapshot: it only exists to resume an
+ * interrupted run, and migration.json should stay small. */
 export function markMigrationCompleted(): void {
-  migrationStore.update((s) => ({ ...s, completedAt: new Date().toISOString() }));
+  migrationStore.update((s) => ({
+    ...s,
+    completedAt: new Date().toISOString(),
+    snapshot: undefined,
+  }));
 }
 
 type Meta = { meta: { total: number } };
@@ -79,7 +105,9 @@ export async function fetchServerMonths(): Promise<Set<number>> {
   return new Set(rows.map((r) => r.month_number));
 }
 
-function isMonthConflict(e: unknown): boolean {
+/** Shared with merge-months — a month that already reached the server on a
+ * previous attempt is success, not failure. */
+export function isMonthConflict(e: unknown): boolean {
   return e instanceof ApiError && e.status === 422 && e.fieldErrors?.month_number !== undefined;
 }
 
@@ -94,7 +122,11 @@ function mark(key: string, value: 'done' | 'failed'): void {
 export async function runMigration(
   snapshot: LocalSnapshot,
   onProgress: (p: MigrationProgress) => void,
-): Promise<{ failed: number }> {
+): Promise<{ failed: number; quotaHit: boolean }> {
+  // Persist the snapshot before the first upload — if the app is killed
+  // mid-run, a relaunch resumes from this copy instead of stranding the data.
+  migrationStore.update((s) => ({ ...s, snapshot }));
+
   const entries = [...snapshot.entries].sort((a, b) => a.monthNumber - b.monthNumber);
   const hasPlanTotal = snapshot.payments.planTotal > 0;
   const total =
@@ -173,14 +205,26 @@ export async function runMigration(
       const mappedVisitId = entry.appointmentId
         ? migrationStore.get().visitIdMap[entry.appointmentId]
         : undefined;
-      await createEntry({
+      const input = {
         monthNumber: entry.monthNumber,
         date: entry.date,
-        photoUri: entry.photo?.uri,
         bracketColor: entry.bracketColor,
         note: entry.note,
         appointmentId: mappedVisitId,
-      });
+      };
+      try {
+        await createEntry({ ...input, photoUri: entry.photo?.uri });
+      } catch (e) {
+        const quotaWithPhoto =
+          entry.photo !== undefined &&
+          e instanceof ApiError &&
+          e.code === 'photo_quota_exceeded';
+        if (!quotaWithPhoto) throw e;
+        // Free-plan photo quota: the month's metadata still moves — retry
+        // photo-less, and keep the local file for a future premium re-upload.
+        migrationStore.update((s) => ({ ...s, quotaHit: true }));
+        await createEntry(input);
+      }
     });
   }
 
@@ -196,20 +240,26 @@ export async function runMigration(
     });
   }
 
+  const quotaHit = migrationStore.get().quotaHit === true;
+
   if (failed === 0) {
     markMigrationCompleted();
     await refreshAllApiStores();
-    cleanupOrphanPhotoFiles(
-      new Set(
-        journeyStore
-          .get()
-          .map((e) => e.photo?.uri)
-          .filter((uri): uri is string => uri !== undefined),
-      ),
-    );
+    // A quota-hit run keeps every local photo on disk — the files over the
+    // limit are the only copies left until a premium re-upload.
+    if (!quotaHit) {
+      cleanupOrphanPhotoFiles(
+        new Set(
+          journeyStore
+            .get()
+            .map((e) => e.photo?.uri)
+            .filter((uri): uri is string => uri !== undefined),
+        ),
+      );
+    }
   }
 
-  return { failed };
+  return { failed, quotaHit };
 }
 
 /** After a completed migration the server ids own the photo cache — legacy
