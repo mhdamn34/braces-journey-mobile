@@ -1,7 +1,8 @@
 # ML Kit Binding Decision
 
 **Date:** 2026-08-30
-**Status:** Decided on evidence available without a device build; one step outstanding
+**Status:** Package chosen and installed successfully, but it CANNOT build for the iOS
+Simulator on Apple Silicon (§2a). Step 3 is blocked on a physical device.
 **Resolves:** `2026-08-30-tooth-movement-comparison-design.md` §12 and §15 items 1–2
 **Spike task:** Task 12 of `docs/superpowers/plans/2026-08-30-tooth-movement-comparison-phase-1.md`
 
@@ -58,7 +59,55 @@ feature code.
 - Android picks up the app's `compileSdkVersion` via `safeExtGet`, so it inherits SDK 56's.
 - 23 releases, actively maintained through 4.0.0 and 5.0.0 in November 2025.
 
-## 2. Risks accepted
+## 2a. Blocker found: no iOS Simulator support on Apple Silicon
+
+Discovered by installing the package and building, after §1 was written. It does not change the
+choice of package — every ML Kit binding inherits this, because it comes from Google's pod, not
+the wrapper — but it changes how the work can be developed and tested.
+
+**What happened.** `npx expo install` succeeded, `expo prebuild --clean` succeeded, and
+CocoaPods resolved `GoogleMLKit/FaceDetection`, `MLKitVision`, `MLKitCommon` and `MLImage`
+cleanly. The JS bundle built with `0 error(s), and 0 warning(s)`. The build then failed:
+
+```
+xcodebuild: error: Unable to find a destination matching the provided destination specifier:
+        { id:EC8C9F9C-EA50-439C-A347-47D6A3C60222 }
+```
+
+**Cause.** The ML Kit frameworks ship as fat static Mach-O binaries, not `.xcframework`s:
+
+```
+MLKitFaceDetection: Mach-O universal binary with 2 architectures
+  [x86_64: Mach-O 64-bit object] [arm64]
+```
+
+A fat binary cannot distinguish device-arm64 from simulator-arm64, so on an Apple Silicon Mac
+the simulator has no usable slice and Xcode drops every simulator destination from the scheme.
+
+**Controlled confirmation.** `xcodebuild -showdestinations` on the same scheme:
+
+| State | Concrete iOS Simulator destinations |
+|---|---|
+| Before installing ML Kit | 22 |
+| With ML Kit installed | **0** (placeholders only) |
+| After removing ML Kit again | 22 |
+
+Only the physical device destination survived with ML Kit present.
+
+**Consequences.**
+
+1. **Detection cannot be developed or tested on the simulator.** Device builds only, with
+   signing and provisioning. Every other part of this feature — taps, transform, compare,
+   quality gate — remains simulator-testable, because none of them need the native module.
+2. **`detect.ts` must degrade gracefully when the native module is absent**, not merely when
+   detection fails. This is now a hard requirement rather than defensive polish: a simulator
+   build will not have the module at all, and the app must fall back to the taps path instead
+   of crashing on import. Design spec §9's fallback covers the behaviour; this widens its
+   trigger.
+3. Switching wrapper packages does not help. `@react-native-ml-kit/face-detection` depends on
+   the same `GoogleMLKit/FaceDetection` pod and inherits the same limitation.
+
+## 2b. Risks accepted
 
 1. **Not verified against Expo SDK 56.** 5.0.0 shipped 2025-11-17; nothing since, while Expo has
    moved on. Expo modules usually survive SDK bumps, but this is unproven here and is the main
@@ -120,8 +169,16 @@ score.
 
 ## 5. Outstanding: the device test
 
-**Step 3 of the spike was not completed.** Running ML Kit over the three evidence photos needs a
-native build on a simulator or device, which was not available in this session. It is the one
+**Step 3 of the spike is blocked, not merely skipped.** Per §2a, ML Kit cannot build for the iOS
+Simulator on Apple Silicon, so running it over the evidence photos requires a physical device
+build. The harness for it is straightforward and was written and discarded during the spike: a
+throwaway route that reads image files from `<documentDirectory>/spike/`, runs
+`new RNMLKitFaceDetector({ performanceMode: 'accurate', landmarkMode: true, contourMode: true })`
+over each, and writes the results to a JSON file for comparison against the fixture.
+
+There are now **eight** evidence photos rather than three — five bracket colours, jaw shut through
+wide-open, glasses on and off, car and studio lighting — which makes this a far better validation
+set than when §1 was written. It is the one
 claim in this document resting on documentation rather than observation.
 
 What it must answer, before detection is trusted in `detect.ts`:
