@@ -16,6 +16,7 @@ import { useTheme } from '@/theme/use-theme';
 export default function MigrateScreen() {
   const colors = useTheme();
   const snapshotRef = useRef<LocalSnapshot | null>(null);
+  const startedRef = useRef(false);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [running, setRunning] = useState(false);
   const [failed, setFailed] = useState(0);
@@ -32,7 +33,12 @@ export default function MigrateScreen() {
   }
 
   useEffect(() => {
-    void start();
+    if (startedRef.current) return;
+    startedRef.current = true;
+    const t = setTimeout(() => {
+      void start();
+    }, 0);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
