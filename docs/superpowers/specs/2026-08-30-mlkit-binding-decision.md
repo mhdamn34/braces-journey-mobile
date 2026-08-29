@@ -14,8 +14,9 @@ names and angle flags. Cannot build for the iOS Simulator on Apple Silicon (§2a
 | Still-image detection (import, backfill, review) | **`@infinitered/react-native-mlkit-face-detection`** | 5.0.0 |
 | Live frame detection (phase 2 coach + auto-shutter) | **`react-native-vision-camera`** + `react-native-vision-camera-face-detector` | 5.2.3 + 2.0.6 |
 
-**Chin comes from the `faceOval` contour, not from `MOUTH_BOTTOM`.** The spec's fallback is not
-needed. See §3.
+**Chin comes from the face-oval contour, not from `MOUTH_BOTTOM`.** The spec's fallback is not
+needed. See §3 — but note the contour is named **`'Face'`** at runtime, not `'faceOval'` as the
+package's types claim, and it is not always returned (§5.4).
 
 **Pitch is available**, which the spec assumed it would not be. See §4 — this changes §7 of the
 design spec from "known hole" to "gateable".
@@ -122,7 +123,11 @@ Only the physical device destination survived with ML Kit present.
    `react-native-nitro-image` 0.15.2) as peers. That is three native dependencies for phase 2,
    not one. Deferred with phase 2 — nothing in phase 1 needs it.
 
-## 3. Chin: use the `faceOval` contour
+## 3. Chin: use the face-oval contour
+
+> **Superseded in part by §5.4.** Written from the package's TypeScript types; the device test
+> found the runtime contour is named `'Face'`, not `'faceOval'`. The approach below is correct,
+> the name is not.
 
 The spec (§12) flagged that a chin point might need contour mode, with `MOUTH_BOTTOM` as a
 fallback that would have forced a tighter opening threshold. Resolved in favour of contours.
@@ -164,9 +169,12 @@ rather than a solved problem", and §6.2's Pitch row is marked inert. **Detectio
 Once this lands, pitch is measured like yaw and the gate can block on it, exactly as §6.2
 anticipates. The `pitchDeg` field deferred in §15 item 4 should ship with this work.
 
-The `has*` flags matter: the angles are optional, so `detect.ts` must treat a missing angle as
-"unknown" and skip that check rather than defaulting to `0`, which would read as a perfect
-score.
+The angles are optional, so `detect.ts` must treat a missing angle as "unknown" and skip that
+check rather than defaulting to `0`, which would read as a perfect score.
+
+> **Corrected by §5.3.** This section originally said to consult the `hasHeadEulerAngleX/Y/Z`
+> flags. Those flags **do not exist at runtime** — only the angle fields themselves are present.
+> Null-check `headEulerAngleX/Y/Z` directly.
 
 ## 5. Device test results
 
