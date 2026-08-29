@@ -5,7 +5,7 @@ import { Text, TextInput } from 'react-native';
 import { Button } from '@/components/button';
 import { Screen } from '@/components/screen';
 import { login } from '@/features/auth/api';
-import { refreshAllApiStores } from '@/lib/store/create-api-store';
+import { routeAfterSignIn } from '@/features/migration/routing';
 import { useAsyncAction } from '@/lib/use-async-action';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -17,8 +17,8 @@ export default function SignInScreen() {
 
   const { run, pending, error } = useAsyncAction(async () => {
     await login({ email: email.trim(), password });
-    await refreshAllApiStores();
-    router.replace('/');
+    const destination = await routeAfterSignIn();
+    router.replace(destination);
   });
 
   const inputStyle = [

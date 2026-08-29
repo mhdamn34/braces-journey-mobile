@@ -43,6 +43,8 @@ export default function RootLayout() {
         <Stack.Screen name="review" />
         <Stack.Screen name="compare" />
         <Stack.Screen name="import-photos" />
+        <Stack.Screen name="migrate" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="merge-months" options={{ gestureEnabled: false }} />
       </Stack>
       <SaveErrorBanner />
     </GestureHandlerRootView>
