@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -78,6 +78,24 @@ export default function CameraScreen() {
         mirror={facing === 'front'}
       />
       {previous?.photo ? <GhostOverlay uri={previous.photo.uri} visible={ghostVisible} /> : null}
+
+      {/* Static framing target — no detection needed. Prevention beats correction:
+          yaw and pitch are out-of-plane and cannot be fixed after the fact. */}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <View
+          style={{
+            position: 'absolute',
+            left: '12%',
+            right: '12%',
+            top: '30%',
+            bottom: '22%',
+            borderRadius: 999,
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.55)',
+            borderStyle: 'dashed',
+          }}
+        />
+      </View>
 
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, paddingTop: insets.top }}>
         <View

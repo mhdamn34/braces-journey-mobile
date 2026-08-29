@@ -51,12 +51,14 @@ persistence. Route files contain composition and navigation only.
 - `src/lib/` — store factories, dates, currency, and `src/lib/api/` (client,
   token, pagination). `src/theme/` — tokens + hook.
 - `src/components/` — shared primitives (screen, card, button, chip, rows…).
-- `src/features/` — auth, journey, capture, profile (+ onboarding steps),
-  visits, payments, migration. Each: types + store + components.
+- `src/features/` — auth, journey, capture (+ `alignment/`: landmark types,
+  canonical frame, transform maths, quality gate, anchor editor), profile
+  (+ onboarding steps), visits, payments, migration. Each: types + store +
+  components.
 - `src/app/` — expo-router routes: `welcome`, `sign-in`, `create-account`,
   `(tabs)/` (Journey, Capture, More), camera, review, player, compare,
-  import-photos, entry/[id], visits/*, payments, settings, onboarding,
-  `migrate`, `merge-months`.
+  import-photos, entry/[id], align/[id], visits/*, payments, settings,
+  onboarding, `migrate`, `merge-months`.
 
 ## Domain cheatsheet
 
@@ -70,6 +72,13 @@ persistence. Route files contain composition and navigation only.
 - Auth: Sanctum bearer token in expo-secure-store; token gate in
   `(tabs)/_layout` ahead of the onboarding gate. Photo cache:
   `<documentDirectory>/photos/<entryId>.<ext>`, server ids.
+- Alignment: each entry may carry `alignment` (normalized face landmarks).
+  Compare normalizes every photo into a canonical 4:5 frame — nose base for
+  the upper arch, chin for the lower, because the mandible swings. Photos
+  without alignment fall back to plain `cover`. Yaw and pitch are
+  out-of-plane: gated or warned at capture, never corrected. Source is `taps`
+  today; `mlkit`/`model` are the future producers.
+  Spec: `docs/superpowers/specs/2026-08-30-tooth-movement-comparison-design.md`
 
 ## Maintenance rule
 
