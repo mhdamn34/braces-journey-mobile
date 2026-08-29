@@ -9,9 +9,12 @@ jest.mock('expo-file-system', () => ({
     }
     create() {}
   },
-  File: class MockFile {
+  // Extends Blob: the real expo-file-system File implements Blob, and the
+  // test environment's strict FormData rejects non-Blob file parts.
+  File: class MockFile extends Blob {
     uri: string;
     constructor(...segments: unknown[]) {
+      super(['mock-bytes'], { type: 'image/jpeg' });
       this.uri = segments
         .map((s) => (typeof s === 'string' ? s : (s as { uri: string }).uri))
         .join('/');
@@ -19,7 +22,7 @@ jest.mock('expo-file-system', () => ({
     get exists() {
       return mockFiles.has(this.uri);
     }
-    text() {
+    async text() {
       return mockFiles.get(this.uri)!;
     }
     textSync() {

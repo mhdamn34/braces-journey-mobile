@@ -12,9 +12,12 @@ jest.mock('expo-file-system', () => ({
       return mockDirList();
     }
   },
-  File: class MockFile {
+  // Extends Blob: the real expo-file-system File implements Blob, and the
+  // test environment's strict FormData rejects non-Blob file parts.
+  File: class MockFile extends Blob {
     uri: string;
     constructor(...segments: unknown[]) {
+      super(['mock-bytes'], { type: 'image/jpeg' });
       this.uri = segments
         .map((s) => (typeof s === 'string' ? s : (s as { uri: string }).uri))
         .join('/');
@@ -22,7 +25,7 @@ jest.mock('expo-file-system', () => ({
     get exists() {
       return false;
     }
-    text() {
+    async text() {
       return '';
     }
     textSync() {
@@ -305,3 +308,4 @@ test('isMonthConflict matches only a 422 carrying month_number field errors', ()
   expect(isMonthConflict(new ApiError(500, 'boom'))).toBe(false);
   expect(isMonthConflict(new Error('plain'))).toBe(false);
 });
+

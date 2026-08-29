@@ -1,3 +1,5 @@
+import { File as FileSystemFile } from 'expo-file-system';
+
 import { deletePhotoFile, persistPhotoFile } from '@/features/capture/photo-files';
 import { resizeForUpload } from '@/features/capture/resize';
 import { entryFromApi, fetchEntries, type ApiJourneyEntry } from '@/features/journey/api';
@@ -32,11 +34,10 @@ export async function createEntry(input: {
   let uploadUri: string | undefined;
   if (input.photoUri) {
     uploadUri = await resizeForUpload(input.photoUri);
-    form.append('photo', {
-      uri: uploadUri,
-      name: 'photo.jpg',
-      type: 'image/jpeg',
-    } as unknown as Blob);
+    // Expo's WinterCG fetch rejects the classic RN {uri,name,type} part
+    // ("Unsupported FormDataPart implementation") — expo-file-system's File
+    // implements Blob, which it accepts natively.
+    form.append('photo', new FileSystemFile(uploadUri), 'photo.jpg');
   }
 
   const res = await apiRequest<{ data: ApiJourneyEntry }>('POST', '/journey-entries', {
