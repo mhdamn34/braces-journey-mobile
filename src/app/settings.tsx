@@ -7,9 +7,11 @@ import { Chip } from '@/components/chip';
 import { ListRow } from '@/components/list-row';
 import { Screen } from '@/components/screen';
 import { SectionVoice } from '@/components/section-voice';
+import { saveProfile } from '@/features/profile/api';
 import { profileStore } from '@/features/profile/store';
 import type { BracesType } from '@/features/profile/types';
 import { isValidIsoDate } from '@/lib/dates';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -51,17 +53,16 @@ export default function SettingsScreen() {
     },
   ];
 
-  function save() {
-    profileStore.update((p) => ({
-      ...p,
+  const { run: saveRun, pending, error } = useAsyncAction(async () => {
+    await saveProfile({
       name: name.trim(),
       clinicName: clinicName.trim(),
       treatmentStartDate: startDate,
       plannedMonths,
       bracesType,
-    }));
+    });
     router.back();
-  }
+  });
 
   return (
     <Screen>
@@ -90,7 +91,12 @@ export default function SettingsScreen() {
             onPress={() => setBracesType(bracesType === t.value ? undefined : t.value)} />
         ))}
       </View>
-      <Button label="Save changes" onPress={save} disabled={!dirty || !dateValid} />
+      {error ? <Text style={[Type.caption, { color: colors.danger }]}>{error}</Text> : null}
+      <Button
+        label={pending ? 'Saving…' : 'Save changes'}
+        onPress={() => void saveRun()}
+        disabled={!dirty || !dateValid || pending}
+      />
       <SectionVoice title="Your photos" />
       <ListRow
         title="Add past photos"

@@ -1,23 +1,8 @@
 const mockFiles = new Map<string, string>();
 const mockDirs = new Set<string>();
 
-jest.mock('expo-file-system', () => ({
-  Paths: { document: '/docs' },
-  Directory: class MockDirectory {
-    uri: string;
-    constructor(...segments: unknown[]) {
-      this.uri = segments
-        .map((s) => (typeof s === 'string' ? s : (s as { uri: string }).uri))
-        .join('/');
-    }
-    get exists() {
-      return mockDirs.has(this.uri);
-    }
-    create() {
-      mockDirs.add(this.uri);
-    }
-  },
-  File: class MockFile {
+jest.mock('expo-file-system', () => {
+  class MockFile {
     uri: string;
     constructor(...segments: unknown[]) {
       this.uri = segments
@@ -34,10 +19,30 @@ jest.mock('expo-file-system', () => ({
       if (!mockFiles.has(this.uri)) throw new Error('missing');
       mockFiles.delete(this.uri);
     }
-  },
-}));
+  }
+  class MockDirectory {
+    uri: string;
+    constructor(...segments: unknown[]) {
+      this.uri = segments
+        .map((s) => (typeof s === 'string' ? s : (s as { uri: string }).uri))
+        .join('/');
+    }
+    get exists() {
+      return mockDirs.has(this.uri);
+    }
+    create() {
+      mockDirs.add(this.uri);
+    }
+    list() {
+      return [...mockFiles.keys()]
+        .filter((key) => key.startsWith(`${this.uri}/`))
+        .map((key) => new MockFile(key));
+    }
+  }
+  return { Paths: { document: '/docs' }, Directory: MockDirectory, File: MockFile };
+});
 
-import { deletePhotoFile, persistPhotoFile } from '@/features/capture/photo-files';
+import { deleteAllPhotoFiles, deletePhotoFile, persistPhotoFile } from '@/features/capture/photo-files';
 
 beforeEach(() => {
   mockFiles.clear();
@@ -64,5 +69,20 @@ describe('deletePhotoFile', () => {
     deletePhotoFile('/docs/photos/e1.jpg');
     expect(mockFiles.has('/docs/photos/e1.jpg')).toBe(false);
     expect(() => deletePhotoFile('/docs/photos/e1.jpg')).not.toThrow();
+  });
+});
+
+describe('deleteAllPhotoFiles', () => {
+  it('empties the photos directory', () => {
+    mockDirs.add('/docs/photos');
+    mockFiles.set('/docs/photos/e1.jpg', 'binary');
+    mockFiles.set('/docs/photos/e2.png', 'binary');
+    deleteAllPhotoFiles();
+    expect([...mockFiles.keys()].filter((k) => k.startsWith('/docs/photos/'))).toEqual([]);
+  });
+
+  it('is a silent no-op when the directory does not exist', () => {
+    expect(() => deleteAllPhotoFiles()).not.toThrow();
+    expect(mockDirs.has('/docs/photos')).toBe(false); // never created just to wipe it
   });
 });

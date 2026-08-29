@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
+import { saveProfile } from '@/features/profile/api';
 import {
   BracesStep,
   type BracesSituation,
@@ -13,6 +14,7 @@ import { WelcomeStep } from '@/features/profile/components/onboarding/welcome-st
 import { profileStore } from '@/features/profile/store';
 import type { BracesType } from '@/features/profile/types';
 import { todayIso } from '@/lib/dates';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
 
@@ -28,27 +30,25 @@ export default function OnboardingScreen() {
 
   const totalSteps = situation === 'existing' ? 4 : 3;
 
-  function saveProfile() {
-    profileStore.update((p) => ({
-      ...p,
+  const { run: finishRun, pending, error } = useAsyncAction(async (thenImport: boolean) => {
+    await saveProfile({
       name: name.trim(),
       clinicName: clinicName.trim(),
       treatmentStartDate: startDate,
       plannedMonths,
       bracesType,
-      onboardedAt: new Date().toISOString(),
-    }));
-  }
+    });
+    profileStore.update((p) => ({ ...p, onboardedAt: new Date().toISOString() }));
+    router.replace('/');
+    if (thenImport) router.push('/import-photos');
+  });
 
   function finish() {
-    saveProfile();
-    router.replace('/');
+    void finishRun(false);
   }
 
   function finishToImport() {
-    saveProfile();
-    router.replace('/');
-    router.push('/import-photos');
+    void finishRun(true);
   }
 
   function afterDetails() {
@@ -76,6 +76,7 @@ export default function OnboardingScreen() {
           <Text style={[Type.label, { color: colors.textSecondary }]}>‹ Back</Text>
         </Pressable>
       ) : null}
+      {error ? <Text style={[Type.caption, { color: colors.danger }]}>{error}</Text> : null}
       {step === 0 && <WelcomeStep onNext={() => setStep(1)} />}
       {step === 1 && (
         <BracesStep

@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -10,8 +10,10 @@ import { Icon } from '@/components/icon';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
 import { monthLabel } from '@/features/journey/logic';
 import { deleteEntry, journeyStore, updateEntry } from '@/features/journey/store';
+import type { BracketColor } from '@/features/journey/types';
 import { formatFullDate } from '@/lib/dates';
 import { useStoreValue } from '@/lib/store/use-store-value';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
 
@@ -21,18 +23,18 @@ export default function EntryDetailScreen() {
   const entries = useStoreValue(journeyStore);
   const entry = entries.find((e) => e.id === id);
   const [note, setNote] = useState(entry?.note ?? '');
-  const noteRef = useRef(note);
-  useEffect(() => {
-    noteRef.current = note;
-  }, [note]);
-  const entryId = entry?.id;
-  useEffect(() => {
-    if (!entryId) return;
-    return () => {
-      updateEntry(entryId, { note: noteRef.current.trim() || undefined });
-    };
-  }, [entryId]);
   const [photoFailed, setPhotoFailed] = useState(false);
+
+  const noteAction = useAsyncAction(async () => {
+    await updateEntry(entry!.id, { note: note.trim() || undefined });
+  });
+  const colorAction = useAsyncAction(async (bracketColor?: BracketColor) => {
+    await updateEntry(entry!.id, { bracketColor });
+  });
+  const deleteAction = useAsyncAction(async () => {
+    await deleteEntry(entry!.id);
+    router.back();
+  });
 
   if (!entry) {
     return (
@@ -50,10 +52,7 @@ export default function EntryDetailScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          deleteEntry(entry!.id);
-          router.back();
-        },
+        onPress: () => void deleteAction.run(),
       },
     ]);
   }
@@ -92,13 +91,12 @@ export default function EntryDetailScreen() {
       <Text style={[Type.label, { color: colors.textSecondary }]}>Bracket colour</Text>
       <ColorSwatchPicker
         value={entry.bracketColor}
-        onChange={(bracketColor) => updateEntry(entry.id, { bracketColor })}
+        onChange={(bracketColor) => void colorAction.run(bracketColor)}
       />
       <Text style={[Type.label, { color: colors.textSecondary }]}>Note</Text>
       <TextInput
         value={note}
         onChangeText={setNote}
-        onEndEditing={() => updateEntry(entry.id, { note: note.trim() || undefined })}
         placeholder="What happened this month?"
         placeholderTextColor={colors.textTertiary}
         multiline
@@ -115,6 +113,18 @@ export default function EntryDetailScreen() {
           },
         ]}
       />
+      {note.trim() !== (entry.note ?? '') ? (
+        <Button
+          label={noteAction.pending ? 'Saving…' : 'Save note'}
+          onPress={() => void noteAction.run()}
+          disabled={noteAction.pending}
+        />
+      ) : null}
+      {noteAction.error ?? colorAction.error ?? deleteAction.error ? (
+        <Text style={[Type.caption, { color: colors.danger }]}>
+          {noteAction.error ?? colorAction.error ?? deleteAction.error}
+        </Text>
+      ) : null}
       <Button label="Delete month" variant="danger" onPress={remove} />
     </Screen>
   );

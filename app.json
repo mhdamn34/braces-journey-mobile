@@ -24,7 +24,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
       "package": "com.mhdamin34.bracesjourney"
     },
     "plugins": [
@@ -47,13 +49,16 @@
           "backgroundColor": "#FAFAF8",
           "image": "./assets/images/braces-journey-logo.png",
           "imageWidth": 160,
-          "dark": { "backgroundColor": "#141417" },
+          "dark": {
+            "backgroundColor": "#141417"
+          },
           "android": {
             "image": "./assets/images/braces-journey-logo.png",
             "imageWidth": 160
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

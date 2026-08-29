@@ -12,6 +12,7 @@ import { profileStore } from '@/features/profile/store';
 import type { VisitStatus } from '@/features/visits/types';
 import { deleteVisit, updateVisit, visitsStore } from '@/features/visits/store';
 import { formatFullDate, todayIso } from '@/lib/dates';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -30,6 +31,32 @@ export default function VisitDetailScreen() {
   const profile = useStoreValue(profileStore);
   const visit = visits.find((v) => v.id === id);
 
+  const {
+    run: statusRun,
+    pending: statusPending,
+    error: statusError,
+  } = useAsyncAction(async (status: VisitStatus) => {
+    if (!visit) return;
+    await updateVisit(visit.id, { status });
+    if (status === 'completed') {
+      const month = suggestedMonthNumber(entries, profile, todayIso());
+      Alert.alert('Changed brackets?', `Capture Month ${month} while it's fresh.`, [
+        { text: 'Later', style: 'cancel' },
+        { text: `Capture Month ${month}`, onPress: () => router.push('/camera') },
+      ]);
+    }
+  });
+
+  const {
+    run: deleteRun,
+    pending: deletePending,
+    error: deleteError,
+  } = useAsyncAction(async () => {
+    if (!visit) return;
+    await deleteVisit(visit.id);
+    router.back();
+  });
+
   if (!visit) {
     return (
       <Screen>
@@ -40,27 +67,13 @@ export default function VisitDetailScreen() {
     );
   }
 
-  function setStatus(status: VisitStatus) {
-    updateVisit(visit!.id, { status });
-    if (status === 'completed') {
-      const month = suggestedMonthNumber(entries, profile, todayIso());
-      Alert.alert('Changed brackets?', `Capture Month ${month} while it's fresh.`, [
-        { text: 'Later', style: 'cancel' },
-        { text: `Capture Month ${month}`, onPress: () => router.push('/camera') },
-      ]);
-    }
-  }
-
   function remove() {
     Alert.alert('Delete this visit?', undefined, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          deleteVisit(visit!.id);
-          router.back();
-        },
+        onPress: () => void deleteRun(),
       },
     ]);
   }
@@ -78,17 +91,24 @@ export default function VisitDetailScreen() {
             key={s.value}
             label={s.label}
             selected={visit.status === s.value}
-            onPress={() => setStatus(s.value)}
+            onPress={statusPending ? undefined : () => void statusRun(s.value)}
           />
         ))}
       </View>
+      {statusError ? <Text style={[Type.caption, { color: colors.danger }]}>{statusError}</Text> : null}
       {visit.notes ? (
         <Card>
           <Text style={[Type.label, { color: colors.textPrimary }]}>Notes</Text>
           <Text style={[Type.body, { color: colors.textSecondary }]}>{visit.notes}</Text>
         </Card>
       ) : null}
-      <Button label="Delete visit" variant="danger" onPress={remove} />
+      {deleteError ? <Text style={[Type.caption, { color: colors.danger }]}>{deleteError}</Text> : null}
+      <Button
+        label={deletePending ? 'Deleting…' : 'Delete visit'}
+        variant="danger"
+        onPress={remove}
+        disabled={deletePending}
+      />
     </Screen>
   );
 }

@@ -1,6 +1,7 @@
+import { fetchProfile } from '@/features/profile/api';
 import type { Profile } from '@/features/profile/types';
 import { todayIso } from '@/lib/dates';
-import { createJsonStore } from '@/lib/store/create-json-store';
+import { createApiStore } from '@/lib/store/create-api-store';
 
 export const DEFAULT_PROFILE: Profile = {
   name: '',
@@ -9,4 +10,4 @@ export const DEFAULT_PROFILE: Profile = {
   plannedMonths: 24,
 };
 
-export const profileStore = createJsonStore<Profile>('profile.json', DEFAULT_PROFILE);
+export const profileStore = createApiStore<Profile>('profile.json', DEFAULT_PROFILE, fetchProfile);

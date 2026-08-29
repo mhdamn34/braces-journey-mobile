@@ -59,7 +59,7 @@ jest.mock('react-native-safe-area-context', () => {
 import { act, render, screen } from '@testing-library/react-native';
 
 import JourneyScreen from '@/app/(tabs)/index';
-import { addEntry, journeyStore } from '@/features/journey/store';
+import { journeyStore } from '@/features/journey/store';
 import { profileStore } from '@/features/profile/store';
 
 describe('JourneyScreen', () => {
@@ -78,19 +78,21 @@ describe('JourneyScreen', () => {
     expect(screen.getByText('It starts with one photo')).toBeTruthy();
 
     await act(() => {
-      addEntry({
-        id: 'e1',
-        monthNumber: 7,
-        date: '2026-08-25',
-        photo: {
-          uri: '/docs/photos/e1.jpg',
-          width: 100,
-          height: 100,
-          capturedAt: '2026-08-25T10:00:00.000Z',
+      journeyStore.set([
+        {
+          id: 'e1',
+          monthNumber: 7,
+          date: '2026-08-25',
+          photo: {
+            uri: '/docs/photos/e1.jpg',
+            width: 100,
+            height: 100,
+            capturedAt: '2026-08-25T10:00:00.000Z',
+          },
+          bracketColor: { name: 'Pink', hex: '#E05C8A' },
+          note: 'Wire tightened',
         },
-        bracketColor: { name: 'Pink', hex: '#E05C8A' },
-        note: 'Wire tightened',
-      });
+      ]);
     });
 
     expect(screen.getByText('Month 7')).toBeTruthy();

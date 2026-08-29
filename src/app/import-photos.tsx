@@ -10,11 +10,11 @@ import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
 import { Icon } from '@/components/icon';
 import { ColorSwatchPicker } from '@/features/capture/components/color-swatch-picker';
-import { persistPhotoFile } from '@/features/capture/photo-files';
 import { suggestImportMonths } from '@/features/journey/logic';
-import { addEntry, journeyStore } from '@/features/journey/store';
+import { createEntry, journeyStore } from '@/features/journey/store';
 import type { BracketColor } from '@/features/journey/types';
 import { profileStore } from '@/features/profile/store';
+import { ApiError } from '@/lib/api/client';
 import { addMonthsIso, parseExifDate } from '@/lib/dates';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Radii, Space, Type } from '@/theme/tokens';
@@ -30,12 +30,21 @@ type Row = {
   note: string;
 };
 
+type UploadState = 'pending' | 'uploading' | 'done' | 'failed';
+
 export default function ImportPhotosScreen() {
   const colors = useTheme();
   const entries = useStoreValue(journeyStore);
   const profile = useStoreValue(profileStore);
   const [rows, setRows] = useState<Row[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, UploadState>>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const takenMonths = new Set(entries.map((e) => e.monthNumber));
+
+  function setStatus(uri: string, state: UploadState) {
+    setStatuses((current) => ({ ...current, [uri]: state }));
+  }
 
   async function pickPhotos() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -70,25 +79,35 @@ export default function ImportPhotosScreen() {
     });
   }
 
-  function confirm() {
+  async function confirm() {
+    setUploading(true);
+    setUploadError(null);
+    let failures = 0;
     for (const row of rows) {
-      const id = `${Date.now()}-${row.month}`;
+      if (statuses[row.uri] === 'done') continue;
+      setStatus(row.uri, 'uploading');
       const date = row.creationDateIso ?? addMonthsIso(profile.treatmentStartDate, row.month - 1);
-      addEntry({
-        id,
-        monthNumber: row.month,
-        date,
-        photo: {
-          uri: persistPhotoFile(row.uri, id),
-          width: row.width,
-          height: row.height,
-          capturedAt: `${date}T12:00:00.000Z`,
-        },
-        bracketColor: row.color,
-        note: row.note.trim() || undefined,
-      });
+      try {
+        await createEntry({
+          monthNumber: row.month,
+          date,
+          photoUri: row.uri,
+          bracketColor: row.color,
+          note: row.note.trim() || undefined,
+        });
+        setStatus(row.uri, 'done');
+      } catch (e) {
+        setStatus(row.uri, 'failed');
+        failures += 1;
+        if (e instanceof ApiError && e.code === 'photo_quota_exceeded') {
+          setUploadError('Free plan photo limit reached — the remaining photos were not added.');
+          break;
+        }
+        setUploadError(e instanceof ApiError ? e.message : 'Some photos could not be added.');
+      }
     }
-    router.back();
+    setUploading(false);
+    if (failures === 0) router.back();
   }
 
   return (
@@ -129,6 +148,15 @@ export default function ImportPhotosScreen() {
                   </Text>
                 </View>
               </View>
+              {statuses[row.uri] && statuses[row.uri] !== 'pending' ? (
+                <Text style={[Type.caption, {
+                  color: statuses[row.uri] === 'failed' ? colors.danger : colors.textTertiary,
+                }]}>
+                  {statuses[row.uri] === 'uploading' ? 'Uploading…'
+                    : statuses[row.uri] === 'done' ? 'Added'
+                    : 'Failed — will retry'}
+                </Text>
+              ) : null}
               <ColorSwatchPicker
                 value={row.color}
                 onChange={(color) =>
@@ -155,11 +183,22 @@ export default function ImportPhotosScreen() {
               />
             </Card>
           ))}
+          {uploadError ? (
+            <Text style={[Type.caption, { color: colors.danger }]}>{uploadError}</Text>
+          ) : null}
           <Button
-            label={`Add ${rows.length} ${rows.length === 1 ? 'month' : 'months'}`}
-            onPress={confirm}
+            label={
+              uploading
+                ? 'Adding…'
+                : Object.values(statuses).includes('failed')
+                  ? 'Retry failed'
+                  : `Add ${rows.length} ${rows.length === 1 ? 'month' : 'months'}`
+            }
+            onPress={() => void confirm()}
+            disabled={uploading}
           />
-          <Button label="Start over" variant="secondary" onPress={() => setRows([])} />
+          <Button label="Start over" variant="secondary" disabled={uploading}
+            onPress={() => { setRows([]); setStatuses({}); setUploadError(null); }} />
         </>
       )}
     </Screen>
