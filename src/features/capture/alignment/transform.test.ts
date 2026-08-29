@@ -108,3 +108,119 @@ test('degenerate landmarks return null rather than an exploding scale', () => {
   const coincident = alignment({ leftEye: { x: 0.5, y: 0.5 }, rightEye: { x: 0.5, y: 0.5 } });
   expect(alignmentTransform(coincident, IMAGE, 'upper')).toBeNull();
 });
+
+/** Derived from the three evidence photos in spec §3. All 768×1024.
+ *  Photo 1: rolled, moderate opening. Photo 2: level, wide open.
+ *  Photo 3: level, nearly shut, and shot slightly further away (IPD 310 vs ~330). */
+const EVIDENCE = {
+  photo1: alignment({
+    leftEye: { x: 200 / 768, y: 390 / 1024 },
+    rightEye: { x: 530 / 768, y: 355 / 1024 },
+    noseBase: { x: 355 / 768, y: 520 / 1024 },
+    chin: { x: 360 / 768, y: 940 / 1024 },
+  }),
+  photo2: alignment({
+    leftEye: { x: 215 / 768, y: 350 / 1024 },
+    rightEye: { x: 545 / 768, y: 350 / 1024 },
+    noseBase: { x: 378 / 768, y: 520 / 1024 },
+    chin: { x: 378 / 768, y: 985 / 1024 },
+  }),
+  photo3: alignment({
+    leftEye: { x: 215 / 768, y: 375 / 1024 },
+    rightEye: { x: 525 / 768, y: 370 / 1024 },
+    noseBase: { x: 370 / 768, y: 555 / 1024 },
+    chin: { x: 370 / 768, y: 930 / 1024 },
+  }),
+};
+
+const EVIDENCE_IMAGE = { width: 768, height: 1024 };
+
+const EVIDENCE_S0 = Math.max(1 / EVIDENCE_IMAGE.width, STAGE_HEIGHT / EVIDENCE_IMAGE.height);
+
+function toEvidenceStage(p: { x: number; y: number }) {
+  return {
+    x: 0.5 + (p.x - 0.5) * EVIDENCE_IMAGE.width * EVIDENCE_S0,
+    y: STAGE_HEIGHT / 2 + (p.y - 0.5) * EVIDENCE_IMAGE.height * EVIDENCE_S0,
+  };
+}
+
+function alignedEyes(a: FaceAlignment) {
+  const t = alignmentTransform(a, EVIDENCE_IMAGE, 'upper')!;
+  return {
+    left: applyStageTransform(toEvidenceStage(a.leftEye), t),
+    right: applyStageTransform(toEvidenceStage(a.rightEye), t),
+  };
+}
+
+const ALL_EVIDENCE = [EVIDENCE.photo1, EVIDENCE.photo2, EVIDENCE.photo3];
+
+test('all three evidence photos anchor their nose base to the canonical origin', () => {
+  // The nose base is the upper-arch anchor, so this is the invariant that must
+  // hold exactly. A similarity transform has 4 DOF: scale and rotation pin the
+  // eye line's length and angle, translation pins the nose base. Nothing is left
+  // over to also pin absolute eye position — see the spread test below.
+  for (const a of ALL_EVIDENCE) {
+    const t = alignmentTransform(a, EVIDENCE_IMAGE, 'upper')!;
+    const p = applyStageTransform(toEvidenceStage(a.noseBase), t);
+
+    expect(p.x).toBeCloseTo(CANONICAL_ORIGIN.upper.x, 6);
+    expect(p.y).toBeCloseTo(CANONICAL_ORIGIN.upper.y * STAGE_HEIGHT, 6);
+  }
+});
+
+test('all three evidence photos end level and at the same eye-line length', () => {
+  for (const a of ALL_EVIDENCE) {
+    const { left, right } = alignedEyes(a);
+
+    expect(right.y - left.y).toBeCloseTo(0, 6);
+    expect(Math.hypot(right.x - left.x, right.y - left.y)).toBeCloseTo(CANONICAL_IPD, 6);
+  }
+});
+
+test('residual eye-position spread is bounded (characterization)', () => {
+  // Characterization, not a correctness property. Once the nose base is pinned
+  // there is no freedom left to also pin the eyes, so whatever varies in each
+  // face's nose-to-eye offset shows up here. Measured on the evidence photos:
+  // x spread 0.044, y spread 0.093 (square units, stage width = 1).
+  //
+  // The vertical figure is the larger one because nose-to-eye distance varies
+  // 148-183px across the three — that is head PITCH foreshortening the face.
+  // Like yaw, it is out-of-plane and a similarity transform cannot undo it.
+  //
+  // This is an eye-region figure. The teeth sit near the anchor, so their
+  // residual is far smaller. Bounds are empirical with modest headroom; if they
+  // start failing, the landmarks or the pitch gate changed — investigate, do
+  // not raise them.
+  const xs = ALL_EVIDENCE.map((a) => alignedEyes(a).left.x);
+  const ys = ALL_EVIDENCE.map((a) => alignedEyes(a).left.y);
+
+  expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(0.05);
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.1);
+});
+
+test("photo 1's roll is corrected to level", () => {
+  const { left, right } = alignedEyes(EVIDENCE.photo1);
+  expect(right.y - left.y).toBeCloseTo(0, 6);
+});
+
+test("photo 3's greater shooting distance is scaled to match photo 2", () => {
+  const two = alignmentTransform(EVIDENCE.photo2, EVIDENCE_IMAGE, 'upper')!;
+  const three = alignmentTransform(EVIDENCE.photo3, EVIDENCE_IMAGE, 'upper')!;
+
+  expect(three.scale).toBeGreaterThan(two.scale); // shot further away, scaled up more
+  expect(three.scale / two.scale).toBeCloseTo(330 / 310, 1);
+});
+
+test('the wide-open vs nearly-shut jaw does not disturb upper-arch alignment', () => {
+  const two = alignmentTransform(EVIDENCE.photo2, EVIDENCE_IMAGE, 'upper')!;
+  const three = alignmentTransform(EVIDENCE.photo3, EVIDENCE_IMAGE, 'upper')!;
+  const nudged = alignmentTransform(
+    { ...EVIDENCE.photo2, chin: { x: 378 / 768, y: 700 / 1024 } },
+    EVIDENCE_IMAGE,
+    'upper',
+  )!;
+
+  expect(nudged.ty).toBeCloseTo(two.ty, 9);
+  expect(nudged.scale).toBeCloseTo(two.scale, 9);
+  expect(three.ty).toBeDefined();
+});
