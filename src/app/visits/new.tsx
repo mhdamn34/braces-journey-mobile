@@ -8,6 +8,7 @@ import { Screen } from '@/components/screen';
 import { profileStore } from '@/features/profile/store';
 import { addVisit } from '@/features/visits/store';
 import { isValidIsoDate, isValidTime, todayIso } from '@/lib/dates';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -38,9 +39,8 @@ export default function NewVisitScreen() {
     },
   ];
 
-  function save() {
-    addVisit({
-      id: `${Date.now()}`,
+  const { run: saveRun, pending, error } = useAsyncAction(async () => {
+    await addVisit({
       title: title.trim(),
       date,
       time,
@@ -49,7 +49,7 @@ export default function NewVisitScreen() {
       status: 'upcoming',
     });
     router.back();
-  }
+  });
 
   return (
     <Screen>
@@ -81,7 +81,8 @@ export default function NewVisitScreen() {
       <Text style={[Type.label, { color: colors.textSecondary }]}>Notes</Text>
       <TextInput value={notes} onChangeText={setNotes} placeholder="Anything to remember (optional)"
         placeholderTextColor={colors.textTertiary} multiline style={[...inputStyle, { minHeight: 60 }]} />
-      <Button label="Save visit" onPress={save} disabled={!valid} />
+      {error ? <Text style={[Type.caption, { color: colors.danger }]}>{error}</Text> : null}
+      <Button label={pending ? 'Saving…' : 'Save visit'} onPress={() => void saveRun()} disabled={!valid || pending} />
     </Screen>
   );
 }
