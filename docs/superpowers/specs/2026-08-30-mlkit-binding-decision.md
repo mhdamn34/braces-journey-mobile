@@ -1,8 +1,9 @@
 # ML Kit Binding Decision
 
 **Date:** 2026-08-30
-**Status:** Package chosen and installed successfully, but it CANNOT build for the iOS
-Simulator on Apple Silicon (§2a). Step 3 is blocked on a physical device.
+**Status:** Validated on a physical device (§5). The package works, but detection fails on
+3 of 8 real photos and the package's TypeScript types are wrong about landmark names, contour
+names and angle flags. Cannot build for the iOS Simulator on Apple Silicon (§2a).
 **Resolves:** `2026-08-30-tooth-movement-comparison-design.md` §12 and §15 items 1–2
 **Spike task:** Task 12 of `docs/superpowers/plans/2026-08-30-tooth-movement-comparison-phase-1.md`
 
@@ -167,7 +168,100 @@ The `has*` flags matter: the angles are optional, so `detect.ts` must treat a mi
 "unknown" and skip that check rather than defaulting to `0`, which would read as a perfect
 score.
 
-## 5. Outstanding: the device test
+## 5. Device test results
+
+Run on an iPhone 17 Pro Max, Debug build, bundle id `…bracesjourney.spike` so the real app was
+untouched. Eight real photos: five bracket colours, jaw shut through wide-open, glasses on and
+off, car and studio lighting. `performanceMode: 'accurate'`, `landmarkMode: true`,
+`contourMode: true`.
+
+### 5.1 It works — with a detection rate of 5 of 8
+
+| Photo | Detected |
+|---|---|
+| p01 car, silver | ✅ |
+| p02 blue, **wide open**, studio | ❌ **no face** |
+| p03 red, glasses | ✅ |
+| p04 silver, glasses | ✅ |
+| p05 steel, glasses, **wide open** | ❌ **no face** |
+| p06 silver, glasses | ✅ |
+| p07 blue, glasses | ✅ |
+| p08 silver, glasses | ❌ **no face** |
+
+**Glasses are not the problem** — four of the five successes wear them. The two clearest failures
+are the two widest-open-mouth shots, which is the worst possible pattern: a wide-open mouth is
+exactly what makes an arch photo useful, and it is what the capture guide asks for.
+
+n = 8 is too small to call this causal, but it is large enough to retire the assumption that
+detection "just works" on real photos. **The automatic-backfill premise in design spec §9 is
+weaker than stated: roughly a third of an existing library may need manual taps anyway.**
+
+Note also that **p02 is one of the three evidence photos** in the `EVIDENCE` fixture — so one of
+the fixture's own photos cannot be detected at all.
+
+### 5.2 The hand-measured fixture is validated
+
+Comparing detector output with the eyeballed coordinates in `transform.test.ts`, as normalized
+fractions:
+
+| | left eye | right eye | nose base |
+|---|---|---|---|
+| p01 detector | (0.262, 0.377) | (0.678, 0.351) | (0.473, 0.497) |
+| p01 fixture | (0.260, 0.381) | (0.690, 0.347) | (0.462, 0.508) |
+| **Δ** | 0.002 / 0.004 | 0.012 / 0.004 | 0.011 / 0.011 |
+
+Agreement to ~1% of frame width on photo 1, ~4–5% on photo 3. The fixture stands; it does not
+need re-deriving.
+
+### 5.3 The package's TypeScript types are wrong in three places
+
+All three cost a debugging cycle and would cost the implementer the same. Every one is a silent
+failure — wrong name, empty result, no error.
+
+| Declared in types | Actual at runtime |
+|---|---|
+| `landmarks[].type` camelCase, e.g. `"noseBase"` | **PascalCase**, `"NoseBase"` |
+| mouth landmark `"bottomMouth"` | **`"MouthBottom"`** |
+| contour `"faceOval"` | **`"Face"`** (36 points) |
+| `hasHeadEulerAngleX/Y/Z` flags | **do not exist** — the field is simply absent or present |
+
+`detect.ts` must therefore match landmark and contour types **case-insensitively against the
+runtime names**, and must null-check `headEulerAngleX/Y/Z` directly rather than consulting the
+`has*` flags §4 originally recommended.
+
+### 5.4 Chin: confirmed, with two caveats
+
+The `Face` contour returns 36 points and its maximum-y point is a usable chin — §3's approach is
+correct, only the contour name was wrong. Two things the design must handle:
+
+1. **Contours are not always returned.** p07 detected a face but produced **zero** contours, so
+   the chin was unavailable while the eyes and nose base were fine. Lower-arch alignment must
+   degrade to unavailable per-photo, not assume a chin whenever a face exists.
+2. **The chin can fall outside the image.** p04 returned chin `y = 1.029` — ML Kit extrapolates
+   the oval past the frame edge. Landmarks are therefore *not* guaranteed to be within 0–1, which
+   the `FaceAlignment` doc comment currently asserts. Either clamp on ingest or relax the
+   contract; the API validation in design spec §8 (`between:0,1`) would **reject this payload**.
+
+### 5.5 Angles, including pitch
+
+Present and plausible on every detected photo:
+
+| Photo | yaw | pitch | roll |
+|---|---|---|---|
+| p01 | −2.7 | 8.3 | 4.8 |
+| p03 | −2.4 | 7.8 | −0.0 |
+| p04 | 1.4 | 2.6 | −0.9 |
+| p06 | −0.9 | 3.4 | 3.8 |
+| p07 | −1.7 | 2.0 | 0.9 |
+
+Pitch spans 2.0°–8.3°, confirming design spec §7: pitch genuinely varies across these photos and
+is now measurable, so §6.2's inert Pitch row can be activated.
+
+Roll needs a **sign-convention check**: p01 reads +4.8° from ML Kit where the tap editor computed
+−5.39° for the same photo. Magnitudes agree; signs are opposite. `detect.ts` must normalize this,
+or aligned photos will rotate the wrong way.
+
+## 5a. Previously outstanding (now done)
 
 **Step 3 of the spike is blocked, not merely skipped.** Per §2a, ML Kit cannot build for the iOS
 Simulator on Apple Silicon, so running it over the evidence photos requires a physical device
