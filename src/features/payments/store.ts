@@ -1,23 +1,37 @@
-import type { PaymentRecord, PaymentsState } from '@/features/payments/types';
-import { createJsonStore } from '@/lib/store/create-json-store';
+import { fetchPayments, paymentFromApi, type ApiPayment } from '@/features/payments/api';
+import type { PaymentMethod, PaymentsState } from '@/features/payments/types';
+import { apiRequest } from '@/lib/api/client';
+import { createApiStore } from '@/lib/store/create-api-store';
 
-export const paymentsStore = createJsonStore<PaymentsState>('payments.json', {
-  planTotal: 0,
-  records: [],
-});
+export const paymentsStore = createApiStore<PaymentsState>(
+  'payments.json',
+  { planTotal: 0, records: [] },
+  fetchPayments,
+);
 
-export function setPlanTotal(planTotal: number): void {
+export async function setPlanTotal(planTotal: number): Promise<void> {
+  await apiRequest('PUT', '/payments/plan-total', { body: { total_cost: planTotal } });
   paymentsStore.update((state) => ({ ...state, planTotal }));
 }
 
-export function addPayment(record: PaymentRecord): void {
+export async function addPayment(input: {
+  date: string;
+  amount: number;
+  method?: PaymentMethod;
+}): Promise<void> {
+  const body: Record<string, unknown> = { amount: input.amount, paid_at: input.date };
+  if (input.method) body.method = input.method;
+  const res = await apiRequest<{ data: ApiPayment }>('POST', '/payments', { body });
   paymentsStore.update((state) => ({
     ...state,
-    records: [...state.records, record].sort((a, b) => a.date.localeCompare(b.date)),
+    records: [...state.records, paymentFromApi(res.data)].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    ),
   }));
 }
 
-export function deletePayment(id: string): void {
+export async function deletePayment(id: string): Promise<void> {
+  await apiRequest('DELETE', `/payments/${id}`);
   paymentsStore.update((state) => ({
     ...state,
     records: state.records.filter((r) => r.id !== id),

@@ -12,6 +12,7 @@ import type { PaymentMethod } from '@/features/payments/types';
 import { addPayment, deletePayment, paymentsStore, setPlanTotal } from '@/features/payments/store';
 import { formatCurrency } from '@/lib/format-currency';
 import { formatFullDate, todayIso } from '@/lib/dates';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useStoreValue } from '@/lib/store/use-store-value';
 import { Radii, Space, Type } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
@@ -31,6 +32,20 @@ export default function PaymentsScreen() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
 
+  const planTotalAction = useAsyncAction(async (value: number) => {
+    await setPlanTotal(value);
+    setEditingTotal(false);
+  });
+  const addAction = useAsyncAction(async () => {
+    const value = Number(amount);
+    await addPayment({ date: todayIso(), amount: value, method });
+    setAmount('');
+    setAdding(false);
+  });
+  const deleteAction = useAsyncAction(async (id: string) => {
+    await deletePayment(id);
+  });
+
   const paid = records.reduce((sum, r) => sum + r.amount, 0);
   const remaining = Math.max(0, planTotal - paid);
   const progress = planTotal > 0 ? Math.min(1, paid / planTotal) : 0;
@@ -47,13 +62,6 @@ export default function PaymentsScreen() {
     },
   ];
 
-  function savePayment() {
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) return;
-    addPayment({ id: `${Date.now()}`, date: todayIso(), amount: value, method });
-    setAmount('');
-    setAdding(false);
-  }
 
   if (planTotal === 0) {
     return (
@@ -66,8 +74,13 @@ export default function PaymentsScreen() {
           </Text>
           <TextInput value={totalDraft} onChangeText={setTotalDraft} placeholder="e.g. 8000"
             keyboardType="numeric" placeholderTextColor={colors.textTertiary} style={inputStyle} />
-          <Button label="Set plan total" disabled={!(Number(totalDraft) > 0)}
-            onPress={() => setPlanTotal(Number(totalDraft))} />
+          <Button label={planTotalAction.pending ? 'Saving…' : 'Set plan total'} disabled={!(Number(totalDraft) > 0) || planTotalAction.pending}
+            onPress={() => void planTotalAction.run(Number(totalDraft))} />
+          {planTotalAction.error && (
+            <Text style={[Type.caption, { color: colors.danger, marginTop: Space.sm }]}>
+              {planTotalAction.error}
+            </Text>
+          )}
         </Card>
         <Button label="Back" variant="secondary" onPress={() => router.back()} />
       </Screen>
@@ -107,13 +120,15 @@ export default function PaymentsScreen() {
           <TextInput value={totalDraft} onChangeText={setTotalDraft} placeholder="e.g. 8000"
             keyboardType="numeric" placeholderTextColor={colors.textTertiary} style={inputStyle} />
           <Button
-            label="Update plan total"
-            disabled={!(Number(totalDraft) > 0)}
-            onPress={() => {
-              setPlanTotal(Number(totalDraft));
-              setEditingTotal(false);
-            }}
+            label={planTotalAction.pending ? 'Saving…' : 'Update plan total'}
+            disabled={!(Number(totalDraft) > 0) || planTotalAction.pending}
+            onPress={() => void planTotalAction.run(Number(totalDraft))}
           />
+          {planTotalAction.error && (
+            <Text style={[Type.caption, { color: colors.danger, marginTop: Space.sm }]}>
+              {planTotalAction.error}
+            </Text>
+          )}
           <Button label="Cancel" variant="secondary" onPress={() => setEditingTotal(false)} />
         </Card>
       ) : (
@@ -138,7 +153,12 @@ export default function PaymentsScreen() {
                 onPress={() => setMethod(m.value)} />
             ))}
           </View>
-          <Button label="Save payment" onPress={savePayment} disabled={!(Number(amount) > 0)} />
+          <Button label={addAction.pending ? 'Saving…' : 'Save payment'} onPress={() => void addAction.run()} disabled={!(Number(amount) > 0) || addAction.pending} />
+          {addAction.error && (
+            <Text style={[Type.caption, { color: colors.danger, marginTop: Space.sm }]}>
+              {addAction.error}
+            </Text>
+          )}
           <Button label="Cancel" variant="secondary" onPress={() => setAdding(false)} />
         </Card>
       ) : (
@@ -146,6 +166,11 @@ export default function PaymentsScreen() {
       )}
 
       <SectionVoice title="Paid so far" />
+      {deleteAction.error && (
+        <Text style={[Type.caption, { color: colors.danger }]}>
+          {deleteAction.error}
+        </Text>
+      )}
       <View style={{ gap: Space.sm }}>
         {records.length === 0 ? (
           <Text style={[Type.caption, { color: colors.textTertiary }]}>No payments recorded yet.</Text>
@@ -158,7 +183,7 @@ export default function PaymentsScreen() {
               onPress={() =>
                 Alert.alert('Remove this payment?', undefined, [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove', style: 'destructive', onPress: () => deletePayment(record.id) },
+                  { text: 'Remove', style: 'destructive', onPress: () => void deleteAction.run(record.id) },
                 ])
               }
             />
