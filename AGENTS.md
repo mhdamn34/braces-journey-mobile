@@ -54,7 +54,10 @@ persistence. Route files contain composition and navigation only.
 - `src/features/` — auth, journey, capture (+ `alignment/`: landmark types,
   canonical frame, transform maths, quality gate, anchor editor), profile
   (+ onboarding steps), visits, payments, migration. Each: types + store +
-  components.
+  components. Landmarks are produced **on the server** (braces-journey-be runs
+  MediaPipe in a queued job); the app produces them only through the four-tap
+  editor, and reads `alignmentStatus` to tell "still detecting" from "detection
+  failed". The app has no face-detection dependency of its own.
 - `src/app/` — expo-router routes: `welcome`, `sign-in`, `create-account`,
   `(tabs)/` (Journey, Capture, More), camera, review, player, compare,
   import-photos, entry/[id], align/[id], visits/*, payments, settings,

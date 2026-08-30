@@ -1,5 +1,12 @@
 # ML Kit Binding Decision
 
+> **SUPERSEDED, 2026-08-30**, by
+> `braces-journey-be/docs/superpowers/specs/2026-08-30-server-side-alignment-detection-design.md`.
+> Detection moved to the server: MediaPipe detects 8 of 8 evidence photos where ML Kit managed 5,
+> and the app keeps its iOS Simulator builds. This document remains the record of *why not ML Kit*,
+> and its device findings — especially the roll sign convention (§5.5) and the out-of-frame chin
+> (§5.4) — still inform the server implementation. Nothing here should be implemented as written.
+
 **Date:** 2026-08-30
 **Status:** Validated on a physical device (§5). The package works, but detection fails on
 3 of 8 real photos and the package's TypeScript types are wrong about landmark names, contour
