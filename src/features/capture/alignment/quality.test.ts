@@ -1,6 +1,7 @@
 import {
   assessAlignment,
   MAX_OPENING_DRIFT,
+  MAX_PITCH_DEG,
   MAX_ROLL_DEG,
   MAX_YAW_DEG,
 } from '@/features/capture/alignment/quality';
@@ -84,4 +85,51 @@ test('the opening check does not apply to the upper arch', () => {
     targetOpeningRatio: 0.82,
   });
   expect(v.issues).not.toContain('opening-mismatch');
+});
+
+test('pitch beyond the threshold warns but never blocks', () => {
+  const verdict = assessAlignment(alignment({ source: 'mediapipe', pitchDeg: -25 }));
+
+  expect(verdict.issues).toContain('pitch');
+  expect(verdict.blocking).toBe(false);
+});
+
+test('pitch at the threshold is accepted', () => {
+  expect(
+    assessAlignment(alignment({ source: 'mediapipe', pitchDeg: -MAX_PITCH_DEG })).issues,
+  ).not.toContain('pitch');
+});
+
+test('absent pitch is unknown, not perfect', () => {
+  expect(assessAlignment(alignment({ source: 'taps' })).issues).not.toContain('pitch');
+});
+
+test('opening mismatch is only judged between photos of the same source', () => {
+  // Drift of 30%, well past MAX_OPENING_DRIFT, so the only thing separating
+  // these two cases is the source of the reference measurement.
+  const detected = alignment({ source: 'mediapipe', openingRatio: 1.3 });
+
+  // Tapped anchors measure the same jaw differently, so this is not evidence
+  // the jaw moved — see spec 2026-08-30 §9.2.
+  expect(
+    assessAlignment(detected, { arch: 'lower', targetOpeningRatio: 1.0, targetSource: 'taps' })
+      .issues,
+  ).not.toContain('opening-mismatch');
+
+  expect(
+    assessAlignment(detected, {
+      arch: 'lower',
+      targetOpeningRatio: 1.0,
+      targetSource: 'mediapipe',
+    }).issues,
+  ).toContain('opening-mismatch');
+});
+
+test('an unspecified target source still compares, for callers that have one photo', () => {
+  expect(
+    assessAlignment(alignment({ source: 'mediapipe', openingRatio: 1.5 }), {
+      arch: 'lower',
+      targetOpeningRatio: 1.0,
+    }).issues,
+  ).toContain('opening-mismatch');
 });
