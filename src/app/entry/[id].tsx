@@ -25,14 +25,19 @@ export default function EntryDetailScreen() {
   const [note, setNote] = useState(entry?.note ?? '');
   const [photoFailed, setPhotoFailed] = useState(false);
 
+  // Address the entry by its route param, never `entry!.id`. Deleting removes
+  // the entry from the store, so this screen re-renders with `entry` undefined
+  // — and React Compiler hoists property reads from these callbacks into
+  // render-time dependency checks, which run BEFORE the `if (!entry)` return
+  // below. `entry!.id` therefore threw on every successful delete.
   const noteAction = useAsyncAction(async () => {
-    await updateEntry(entry!.id, { note: note.trim() || undefined });
+    await updateEntry(id, { note: note.trim() || undefined });
   });
   const colorAction = useAsyncAction(async (bracketColor?: BracketColor) => {
-    await updateEntry(entry!.id, { bracketColor });
+    await updateEntry(id, { bracketColor });
   });
   const deleteAction = useAsyncAction(async () => {
-    await deleteEntry(entry!.id);
+    await deleteEntry(id);
     router.back();
   });
 
