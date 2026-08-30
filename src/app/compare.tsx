@@ -9,6 +9,7 @@ import { Chip } from '@/components/chip';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
 import type { Arch } from '@/features/capture/alignment/types';
+import { AlignmentControls } from '@/features/journey/components/alignment-controls';
 import { AlignedPhoto } from '@/features/journey/components/aligned-photo';
 import { monthLabel } from '@/features/journey/logic';
 import { entriesWithPhotos, journeyStore } from '@/features/journey/store';
@@ -104,28 +105,7 @@ export default function CompareScreen() {
         <Chip label="Lower" selected={arch === 'lower'} onPress={() => setArch('lower')} />
       </View>
 
-      {(() => {
-        const unaligned = [before, after].filter((e) => !e.alignment);
-        if (unaligned.length === 0) return null;
-
-        // A photo the server is still working on is not a photo that needs taps.
-        if (unaligned.every((e) => e.alignmentStatus === 'pending')) {
-          return (
-            <Text style={[Type.caption, { color: darkColors.textTertiary, textAlign: 'center' }]}>
-              Aligning these photos…
-            </Text>
-          );
-        }
-
-        const target = unaligned.find((e) => e.alignmentStatus !== 'pending') ?? unaligned[0];
-        return (
-          <Button
-            label="Not aligned — add anchors"
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/align/[id]', params: { id: target.id } })}
-          />
-        );
-      })()}
+      <AlignmentControls entries={[before, after]} />
 
       <Text style={[Type.label, { color: darkColors.textSecondary }]}>Before</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Space.sm }}>

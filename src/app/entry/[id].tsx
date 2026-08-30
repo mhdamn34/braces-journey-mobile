@@ -93,6 +93,14 @@ export default function EntryDetailScreen() {
           <Text style={[Type.caption, { color: colors.textTertiary }]}>Photo file missing</Text>
         </View>
       ) : null}
+
+      {entry.photo ? (
+        <Button
+          label={entry.alignment ? 'Adjust alignment' : 'Align this photo'}
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/align/[id]', params: { id } })}
+        />
+      ) : null}
       <Text style={[Type.label, { color: colors.textSecondary }]}>Bracket colour</Text>
       <ColorSwatchPicker
         value={entry.bracketColor}
