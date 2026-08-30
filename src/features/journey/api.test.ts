@@ -100,3 +100,71 @@ test('entryFromApi leaves alignment undefined when the server sends null', () =>
 test('entryFromApi tolerates a payload with no alignment key at all', () => {
   expect(entryFromApi(base, undefined).alignment).toBeUndefined();
 });
+
+test('maps pitch and alignment status from the API', () => {
+  const entry = entryFromApi(
+    {
+      ...base,
+      alignment_status: 'detected',
+      alignment: {
+        left_eye: { x: 0.269, y: 0.382 },
+        right_eye: { x: 0.671, y: 0.353 },
+        nose_base: { x: 0.478, y: 0.522 },
+        chin: { x: 0.539, y: 1.044 },
+        roll_deg: -4.12,
+        yaw_deg: -2,
+        pitch_deg: -15.3,
+        opening_ratio: 1.026,
+        source: 'mediapipe',
+        version: 1,
+      },
+    },
+    undefined,
+  );
+
+  expect(entry.alignmentStatus).toBe('detected');
+  expect(entry.alignment?.pitchDeg).toBe(-15.3);
+  expect(entry.alignment?.source).toBe('mediapipe');
+  // Mesh vertices extrapolate past the frame edge; this must survive the mapper.
+  expect(entry.alignment?.chin.y).toBe(1.044);
+});
+
+test('a server without pitch or status still maps cleanly', () => {
+  const entry = entryFromApi(
+    {
+      ...base,
+      alignment: {
+        left_eye: { x: 0.26, y: 0.38 },
+        right_eye: { x: 0.69, y: 0.35 },
+        nose_base: { x: 0.46, y: 0.51 },
+        chin: { x: 0.47, y: 0.92 },
+        roll_deg: -5.39,
+        yaw_deg: 0,
+        opening_ratio: 0.952,
+        source: 'taps',
+        version: 1,
+      },
+    },
+    undefined,
+  );
+
+  expect(entry.alignmentStatus).toBeUndefined();
+  expect(entry.alignment?.pitchDeg).toBeUndefined();
+});
+
+test('alignmentToApi round-trips pitch', () => {
+  const alignment: FaceAlignment = {
+    leftEye: { x: 0.26, y: 0.38 },
+    rightEye: { x: 0.69, y: 0.35 },
+    noseBase: { x: 0.46, y: 0.51 },
+    chin: { x: 0.47, y: 0.92 },
+    rollDeg: -5.39,
+    yawDeg: 0,
+    pitchDeg: -15.3,
+    openingRatio: 0.952,
+    source: 'mediapipe',
+    version: 1,
+  };
+
+  expect(alignmentToApi(alignment).pitch_deg).toBe(-15.3);
+});

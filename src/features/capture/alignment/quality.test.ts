@@ -15,7 +15,7 @@ function alignment(overrides: Partial<FaceAlignment> = {}): FaceAlignment {
     rollDeg: 0,
     yawDeg: 0,
     openingRatio: 0.82,
-    source: 'mlkit',
+    source: 'mediapipe',
     version: 1,
     ...overrides,
   };
