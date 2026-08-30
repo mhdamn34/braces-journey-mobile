@@ -12,7 +12,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "BracesJourney uses the front camera to capture your smile and track progress over time. Photos stay on your device.",
         "NSPhotoLibraryAddUsageDescription": "BracesJourney can save progress photos to your library when you want a backup.",
-        "NSMicrophoneUsageDescription": "BracesJourney does not record audio, but the camera framework requires this entry to be declared."
+        "NSMicrophoneUsageDescription": "BracesJourney does not record audio, but the camera framework requires this entry to be declared.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       },
       "bundleIdentifier": "com.mhdamin34.bracesjourney"
     },

@@ -16,6 +16,10 @@ export type ApiJourneyEntry = {
   /** Optional so cached payloads and older servers still typecheck. */
   alignment?: ApiFaceAlignment | null;
   alignment_status?: AlignmentStatus | null;
+  /** Real pixel size of the stored photo. Optional so cached payloads and
+   *  older servers still typecheck — see the fallback in entryFromApi. */
+  image_width?: number | null;
+  image_height?: number | null;
 };
 
 export type ApiPoint = { x: number; y: number };
@@ -73,7 +77,16 @@ export function entryFromApi(e: ApiJourneyEntry, photoUri: string | undefined): 
     monthNumber: e.month_number,
     date,
     photo: photoUri
-      ? { uri: photoUri, width: 1200, height: 1600, capturedAt: `${date}T12:00:00.000Z` }
+      ? {
+          uri: photoUri,
+          // The transform projects normalized landmarks through this aspect
+          // ratio, so a guess here misplaces every vertical coordinate. The
+          // legacy constants are only a fallback for rows written before the
+          // server recorded real dimensions.
+          width: e.image_width ?? 1200,
+          height: e.image_height ?? 1600,
+          capturedAt: `${date}T12:00:00.000Z`,
+        }
       : undefined,
     bracketColor:
       e.bracket_color_name && e.bracket_color_hex

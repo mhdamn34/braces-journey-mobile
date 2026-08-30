@@ -168,3 +168,21 @@ test('alignmentToApi round-trips pitch', () => {
 
   expect(alignmentToApi(alignment).pitch_deg).toBe(-15.3);
 });
+
+test('uses the real photo dimensions from the API', () => {
+  const entry = entryFromApi(
+    { ...base, image_width: 1600, image_height: 3476, photo_url: 'https://x/1' },
+    'file:///cached.jpg',
+  );
+
+  // A tall crop: assuming 1200x1600 here misplaces every landmark vertically.
+  expect(entry.photo?.width).toBe(1600);
+  expect(entry.photo?.height).toBe(3476);
+});
+
+test('falls back to the legacy size when the server omits dimensions', () => {
+  const entry = entryFromApi({ ...base, photo_url: 'https://x/1' }, 'file:///cached.jpg');
+
+  expect(entry.photo?.width).toBe(1200);
+  expect(entry.photo?.height).toBe(1600);
+});
