@@ -1,6 +1,6 @@
 import type { FaceAlignment, Point } from '@/features/capture/alignment/types';
 import { ensurePhotoCached } from '@/features/journey/photo-cache';
-import type { JourneyEntry } from '@/features/journey/types';
+import type { AlignmentStatus, JourneyEntry } from '@/features/journey/types';
 import { fetchAllPages } from '@/lib/api/pagination';
 
 export type ApiJourneyEntry = {
@@ -15,6 +15,7 @@ export type ApiJourneyEntry = {
   created_at: string | null;
   /** Optional so cached payloads and older servers still typecheck. */
   alignment?: ApiFaceAlignment | null;
+  alignment_status?: AlignmentStatus | null;
 };
 
 export type ApiPoint = { x: number; y: number };
@@ -26,6 +27,7 @@ export type ApiFaceAlignment = {
   chin: ApiPoint;
   roll_deg: number;
   yaw_deg: number;
+  pitch_deg?: number | null;
   opening_ratio: number;
   source: FaceAlignment['source'];
   version: number;
@@ -42,6 +44,7 @@ export function alignmentFromApi(raw: ApiFaceAlignment | null): FaceAlignment | 
     chin: point(raw.chin),
     rollDeg: raw.roll_deg,
     yawDeg: raw.yaw_deg,
+    pitchDeg: raw.pitch_deg ?? undefined,
     openingRatio: raw.opening_ratio,
     source: raw.source,
     version: 1,
@@ -56,6 +59,7 @@ export function alignmentToApi(alignment: FaceAlignment): ApiFaceAlignment {
     chin: point(alignment.chin),
     roll_deg: alignment.rollDeg,
     yaw_deg: alignment.yawDeg,
+    pitch_deg: alignment.pitchDeg ?? null,
     opening_ratio: alignment.openingRatio,
     source: alignment.source,
     version: alignment.version,
@@ -76,6 +80,7 @@ export function entryFromApi(e: ApiJourneyEntry, photoUri: string | undefined): 
         ? { name: e.bracket_color_name, hex: e.bracket_color_hex }
         : undefined,
     alignment: alignmentFromApi(e.alignment ?? null),
+    alignmentStatus: e.alignment_status ?? undefined,
     note: e.notes ?? undefined,
     appointmentId: e.appointment_id !== null ? String(e.appointment_id) : undefined,
   };
